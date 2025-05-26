@@ -37,12 +37,9 @@ export const columns: ColumnDef<Job>[] = [
     accessorKey: "id",
     header: "Job ID",
     cell: ({ row }) => (
-      <Link 
-        href={`/dashboard/jobs/${row.getValue("id")}`}
-        className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-      >
+      <div className="font-medium text-blue-600">
         {row.getValue("id")}
-      </Link>
+      </div>
     ),
   },
   {

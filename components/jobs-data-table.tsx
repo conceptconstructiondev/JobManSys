@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronDown } from "lucide-react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -43,17 +44,22 @@ export function JobsDataTable<TData, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
+  const router = useRouter()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-    // Hide some columns on mobile by default
-    description: false,
-    acceptedBy: false,
+    // Show all columns by default
+    description: true,
+    acceptedBy: true,
     onsiteTime: false,
     completedTime: false,
   })
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState("")
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 20,
+  })
 
   const table = useReactTable({
     data,
@@ -61,6 +67,7 @@ export function JobsDataTable<TData, TValue>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -73,8 +80,15 @@ export function JobsDataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
       globalFilter,
+      pagination,
     },
   })
+
+  const handleRowClick = (row: any) => {
+    // Get the job ID from the row data
+    const jobId = row.original.id
+    router.push(`/dashboard/jobs/${jobId}`)
+  }
 
   return (
     <div className="w-full">
@@ -138,6 +152,8 @@ export function JobsDataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={() => handleRowClick(row)}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

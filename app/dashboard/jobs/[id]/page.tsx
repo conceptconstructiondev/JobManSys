@@ -1,23 +1,98 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Calendar, Clock, FileText, AlertCircle, User, CheckCircle2, X, Camera } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, FileText, AlertCircle, User, CheckCircle2, X, Camera, Receipt } from "lucide-react"
 import Link from "next/link"
-import { getJobById } from "@/lib/jobs-data"
-import { notFound } from "next/navigation"
+import { getJobById, toggleJobInvoiced } from "@/lib/jobs"
+import { useAuth } from "@/contexts/AuthContext"
+import { Job } from "@/lib/jobs-data"
 
-interface JobPageProps {
-  params: Promise<{
-    id: string
-  }>
-}
+export default function JobPage() {
+  const params = useParams()
+  const { user, loading: authLoading } = useAuth()
+  const [job, setJob] = useState<Job | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [updatingInvoice, setUpdatingInvoice] = useState(false)
 
-export default async function JobPage({ params }: JobPageProps) {
-  const { id } = await params
-  const job = getJobById(id)
+  useEffect(() => {
+    async function fetchJob() {
+      if (!user) return
+      
+      try {
+        setLoading(true)
+        const jobData = await getJobById(params.id as string)
+        setJob(jobData)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch job')
+      } finally {
+        setLoading(false)
+      }
+    }
 
+    if (!authLoading) {
+      fetchJob()
+    }
+  }, [params.id, user, authLoading])
+
+  const handleToggleInvoiced = async () => {
+    if (!job) return
+
+    setUpdatingInvoice(true)
+    try {
+      const newInvoicedStatus = !job.invoiced
+      await toggleJobInvoiced(job.id, newInvoicedStatus)
+      
+      // Update local state
+      setJob({
+        ...job,
+        invoiced: newInvoicedStatus
+      })
+    } catch (error) {
+      console.error('Failed to update invoice status:', error)
+      // You could add a toast notification here
+    } finally {
+      setUpdatingInvoice(false)
+    }
+  }
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Please log in</h2>
+          <p className="text-muted-foreground mb-4">You need to be logged in to view job details.</p>
+          <Button asChild>
+            <Link href="/login">Go to Login</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading while fetching job
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading job...</div>
+  }
+
+  // Show error if fetch failed
+  if (error) {
+    return <div className="flex items-center justify-center min-h-screen">Error: {error}</div>
+  }
+
+  // Show not found if job doesn't exist
   if (!job) {
-    notFound()
+    return <div className="flex items-center justify-center min-h-screen">Job not found</div>
   }
 
   const statusConfig = {
@@ -83,7 +158,7 @@ export default async function JobPage({ params }: JobPageProps) {
                   <p className="text-lg text-muted-foreground">{job.company}</p>
                   <p className="text-sm text-muted-foreground">Job ID: {job.id}</p>
                 </div>
-                <div className="flex items-center">
+                {/* <div className="flex items-center">
                   {job.invoiced ? (
                     <span title="Invoiced">
                       <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -93,7 +168,7 @@ export default async function JobPage({ params }: JobPageProps) {
                       <X className="h-5 w-5 text-red-500" />
                     </span>
                   )}
-                </div>
+                </div> */}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -231,9 +306,16 @@ export default async function JobPage({ params }: JobPageProps) {
 
               <div>
                 <p className="font-medium">Invoiced</p>
-                <p className="text-sm text-muted-foreground">
-                  {job.invoiced ? "Yes" : "No"}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    {job.invoiced ? "Yes" : "No"}
+                  </p>
+                  {job.invoiced ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <X className="h-4 w-4 text-red-500" />
+                  )}
+                </div>
               </div>
 
               {job.acceptedBy && (
@@ -244,6 +326,49 @@ export default async function JobPage({ params }: JobPageProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Invoice Management - Only show for completed jobs */}
+          {job.status === 'completed' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  Invoice Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Invoice Status:</span>
+                    <Badge variant={job.invoiced ? "default" : "secondary"}>
+                      {job.invoiced ? "Invoiced" : "Not Invoiced"}
+                    </Badge>
+                  </div>
+                  
+                  <Button
+                    onClick={handleToggleInvoiced}
+                    disabled={updatingInvoice}
+                    variant={job.invoiced ? "outline" : "default"}
+                    className="w-full"
+                  >
+                    {updatingInvoice ? (
+                      "Updating..."
+                    ) : job.invoiced ? (
+                      "Mark as Not Invoiced"
+                    ) : (
+                      "Mark as Invoiced"
+                    )}
+                  </Button>
+                  
+                  {job.invoiced && (
+                    <p className="text-xs text-muted-foreground">
+                      This job has been marked as invoiced and will appear in your billing records.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

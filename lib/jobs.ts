@@ -182,4 +182,16 @@ export async function completeJob(
     console.error('Error completing job:', error)
     throw error
   }
+}
+
+// Mark job as invoiced/not invoiced
+export async function toggleJobInvoiced(jobId: string, invoiced: boolean) {
+  try {
+    await updateJob(jobId, {
+      invoiced: invoiced
+    })
+  } catch (error) {
+    console.error('Error updating invoice status:', error)
+    throw error
+  }
 } 

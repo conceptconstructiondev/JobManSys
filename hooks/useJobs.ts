@@ -1,3 +1,4 @@
+"use client"
 import { useState, useEffect } from 'react'
 import { getAllJobs, getJobsByStatus, getJobsByUser } from '@/lib/jobs'
 import { Job } from '@/lib/jobs-data'
