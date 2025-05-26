@@ -8,9 +8,12 @@ import { Label } from "@/components/ui/label"
 import { ArrowLeft, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { createJob } from "@/lib/jobs"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function AddJobPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
@@ -31,26 +34,18 @@ export default function AddJobPage() {
     setIsSubmitting(true)
 
     try {
-      // TODO: Replace with actual API call to create job
-      const newJob = {
-        id: `JOB${String(Date.now()).slice(-3)}`, // Generate temporary ID
+      const jobId = await createJob({
         title: formData.title,
         description: formData.description,
         company: formData.company,
-        status: "open" as const,
+        status: "open",
         acceptedBy: null,
         onsiteTime: null,
         completedTime: null,
         invoiced: false,
-        createdAt: new Date().toISOString().split('T')[0], // Today's date
-      }
+      })
 
-      console.log("New job created:", newJob)
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Redirect back to dashboard
+      console.log("New job created with ID:", jobId)
       router.push("/dashboard")
     } catch (error) {
       console.error("Error creating job:", error)

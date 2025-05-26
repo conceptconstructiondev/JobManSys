@@ -4,13 +4,23 @@ import { PlusIcon, BriefcaseIcon,  Users, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { JobsDataTable } from "../../components/jobs-data-table"
 import { columns } from "../../components/columns"
-import { jobsData } from "@/lib/jobs-data"
+import { useJobs } from "@/hooks/useJobs"
 
 export default function DashboardPage() {
+  const { jobs, loading, error } = useJobs()
+
+  if (loading) {
+    return <div>Loading jobs...</div>
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>
+  }
+
   // Calculate metrics for cards
-  const outstandingJobs = jobsData.filter(job => job.status === 'open').length
-  const onsiteJobs = jobsData.filter(job => job.status === 'onsite').length
-  const completedJobs = jobsData.filter(job => job.status === 'completed').length
+  const outstandingJobs = jobs.filter(job => job.status === 'open').length
+  const onsiteJobs = jobs.filter(job => job.status === 'onsite').length
+  const completedJobs = jobs.filter(job => job.status === 'completed').length
 
   return (
     <div className="space-y-6">
@@ -75,7 +85,7 @@ export default function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <JobsDataTable columns={columns} data={jobsData} />
+          <JobsDataTable columns={columns} data={jobs} />
         </CardContent>
       </Card>
     </div>
