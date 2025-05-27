@@ -11,6 +11,9 @@ import { getJobById, toggleJobInvoiced } from "@/lib/jobs"
 import { useAuth } from "@/contexts/AuthContext"
 import { Job } from "@/lib/jobs-data"
 import Image from "next/image"
+import { getSignedImageUrl } from "@/lib/supabase"
+import { JOB_STATUS_CONFIG } from "@/lib/status-config"
+import { JobsCache } from "@/lib/jobsCache"
 
 export default function JobPage() {
   const params = useParams()
@@ -19,6 +22,13 @@ export default function JobPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingInvoice, setUpdatingInvoice] = useState(false)
+  
+  // Add state for image URLs
+  const [imageUrls, setImageUrls] = useState<{
+    workStarted?: string | null
+    workCompleted?: string | null
+  }>({})
+  const [loadingImages, setLoadingImages] = useState(false)
 
   useEffect(() => {
     async function fetchJob() {
@@ -40,6 +50,36 @@ export default function JobPage() {
     }
   }, [params.id, user, authLoading])
 
+  // Load image URLs when job loads
+  useEffect(() => {
+    async function loadImageUrls() {
+      if (!job) return
+      
+      setLoadingImages(true)
+      const urls: any = {}
+      
+      try {
+        if (job.work_started_image) {
+          console.log('📸 Loading work started image:', job.work_started_image)
+          urls.workStarted = await getSignedImageUrl(job.work_started_image)
+        }
+        
+        if (job.work_completed_image) {
+          console.log('📸 Loading work completed image:', job.work_completed_image)
+          urls.workCompleted = await getSignedImageUrl(job.work_completed_image)
+        }
+        
+        setImageUrls(urls)
+      } catch (error) {
+        console.error('Error loading image URLs:', error)
+      } finally {
+        setLoadingImages(false)
+      }
+    }
+    
+    loadImageUrls()
+  }, [job])
+
   const handleToggleInvoiced = async () => {
     if (!job) return
 
@@ -53,147 +93,117 @@ export default function JobPage() {
         ...job,
         invoiced: newInvoicedStatus
       })
+
+      // Clear cache so dashboard will fetch fresh data
+      JobsCache.clear()
+      console.log('Jobs cache cleared after invoice status update')
     } catch (error) {
       console.error('Failed to update invoice status:', error)
-      // You could add a toast notification here
     } finally {
       setUpdatingInvoice(false)
     }
   }
 
-  // Show loading while checking auth
-  if (authLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Not set'
+    
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    } catch (error) {
+      return 'Invalid Date'
+    }
   }
 
-  // Redirect to login if not authenticated
-  if (!user) {
+  const formatDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Not set'
+    
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (error) {
+      return 'Invalid Date'
+    }
+  }
+
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Please log in</h2>
-          <p className="text-muted-foreground mb-4">You need to be logged in to view job details.</p>
-          <Button asChild>
-            <Link href="/login">Go to Login</Link>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading job details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">{error}</p>
+          <Button asChild className="mt-4">
+            <Link href="/dashboard">Back to Dashboard</Link>
           </Button>
         </div>
       </div>
     )
   }
 
-  // Show loading while fetching job
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading job...</div>
-  }
-
-  // Show error if fetch failed
-  if (error) {
-    return <div className="flex items-center justify-center min-h-screen">Error: {error}</div>
-  }
-
-  // Show not found if job doesn't exist
   if (!job) {
-    return <div className="flex items-center justify-center min-h-screen">Job not found</div>
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <FileText className="h-8 w-8 text-gray-400 mx-auto mb-4" />
+          <p>Job not found</p>
+          <Button asChild className="mt-4">
+            <Link href="/dashboard">Back to Dashboard</Link>
+          </Button>
+        </div>
+      </div>
+    )
   }
 
-  const statusConfig = {
-    open: { label: "Open", variant: "secondary" as const, icon: FileText },
-    accepted: { label: "Accepted", variant: "default" as const, icon: User },
-    onsite: { label: "Onsite", variant: "destructive" as const, icon: AlertCircle },
-    completed: { label: "Completed", variant: "outline" as const, icon: CheckCircle2 },
-  }
-
-  const config = statusConfig[job.status]
+  // Remove the local statusConfig and use the global one
+  const config = JOB_STATUS_CONFIG[job.status]
   const StatusIcon = config.icon
 
-  // Helper function for consistent date formatting
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return 'N/A'
-    
-    const date = new Date(dateString)
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return 'Invalid Date'
-    }
-    
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    })
-  }
-
-  const formatDateTime = (dateString: string | null | undefined) => {
-    if (!dateString) return 'N/A'
-    
-    const date = new Date(dateString)
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return 'Invalid Date'
-    }
-    
-    const formattedDate = date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    })
-    const formattedTime = date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false
-    })
-    
-    return `${formattedDate} ${formattedTime}`
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="container mx-auto p-6 max-w-6xl">
+      {/* Header */}
+      <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+            Back to Jobs Dashboard
           </Link>
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Job Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Job Description */}
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-bold">{job.title}</h1>
-                    <Badge variant={config.variant} className="flex items-center gap-1">
-                      <StatusIcon className="h-3 w-3" />
-                      {config.label}
-                    </Badge>
-                  </div>
-                  <p className="text-lg text-muted-foreground">{job.company}</p>
-                  <p className="text-sm text-muted-foreground">Job ID: {job.id}</p>
-                </div>
-                {/* <div className="flex items-center">
-                  {job.invoiced ? (
-                    <span title="Invoiced">
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    </span>
-                  ) : (
-                    <span title="Not invoiced">
-                      <X className="h-5 w-5 text-red-500" />
-                    </span>
-                  )}
-                </div> */}
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold">{job.title}</h1>
+                <p className="text-muted-foreground">{job.company}</p>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-sm">{job.description}</p>
-              </div>
+            <CardContent>
+              <p className="text-sm leading-relaxed">{job.description}</p>
             </CardContent>
           </Card>
 
@@ -242,14 +252,23 @@ export default function JobPage() {
                       {job.work_started_image && (
                         <div className="mb-3">
                           <p className="text-xs text-muted-foreground mb-2">Problem Photo:</p>
-                          <div className="relative w-full max-w-md h-48 rounded-lg overflow-hidden border">
-                            <Image
-                              src={job.work_started_image}
-                              alt="Problem photo - before work"
-                              width={400}
-                              height={192}
-                              className="w-full h-full object-cover"
-                            />
+                          <div className="relative w-full rounded-lg overflow-hidden border">
+                            {loadingImages || !imageUrls.workStarted ? (
+                              <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
+                                <span className="text-gray-500">Loading image...</span>
+                              </div>
+                            ) : (
+                              <Image
+                                src={imageUrls.workStarted}
+                                alt="Problem photo - before work"
+                                width={800}
+                                height={600}
+                                className="w-full h-auto object-contain"
+                                onError={(e) => {
+                                  console.error('❌ Image failed to load:', job.work_started_image)
+                                }}
+                              />
+                            )}
                           </div>
                         </div>
                       )}
@@ -281,14 +300,23 @@ export default function JobPage() {
                       {job.work_completed_image && (
                         <div className="mb-3">
                           <p className="text-xs text-muted-foreground mb-2">Completed Work Photo:</p>
-                          <div className="relative w-full max-w-md h-48 rounded-lg overflow-hidden border">
-                            <Image
-                              src={job.work_completed_image}
-                              alt="Completed work photo - after fix"
-                              width={400}
-                              height={192}
-                              className="w-full h-full object-cover"
-                            />
+                          <div className="relative w-full rounded-lg overflow-hidden border">
+                            {loadingImages || !imageUrls.workCompleted ? (
+                              <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
+                                <span className="text-gray-500">Loading image...</span>
+                              </div>
+                            ) : (
+                              <Image
+                                src={imageUrls.workCompleted}
+                                alt="Completed work photo - after fix"
+                                width={800}
+                                height={600}
+                                className="w-full h-auto object-contain"
+                                onError={(e) => {
+                                  console.error('❌ Image failed to load:', job.work_completed_image)
+                                }}
+                              />
+                            )}
                           </div>
                         </div>
                       )}
@@ -381,12 +409,6 @@ export default function JobPage() {
                       "Mark as Invoiced"
                     )}
                   </Button>
-                  
-                  {job.invoiced && (
-                    <p className="text-xs text-muted-foreground">
-                      This job has been marked as invoiced and will appear in your billing records.
-                    </p>
-                  )}
                 </div>
               </CardContent>
             </Card>

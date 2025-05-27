@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, ExternalLink, CheckCircle2, X } from "lucide-react"
 import Link from "next/link"
+import { JOB_STATUS_CONFIG } from "@/lib/status-config"
 
 // Job type definition
 export type Job = {
@@ -109,15 +110,7 @@ export const columns: ColumnDef<Job>[] = [
     header: "Status",
     cell: ({ row }) => {
       const status = row.getValue("status") as string
-      
-      const statusConfig = {
-        open: { label: "Open", variant: "secondary" as const },
-        accepted: { label: "Accepted", variant: "default" as const },
-        onsite: { label: "Onsite", variant: "destructive" as const },
-        completed: { label: "Completed", variant: "outline" as const },
-      }
-      
-      const config = statusConfig[status as keyof typeof statusConfig]
+      const config = JOB_STATUS_CONFIG[status as keyof typeof JOB_STATUS_CONFIG]
       
       return <Badge variant={config.variant}>{config.label}</Badge>
     },
