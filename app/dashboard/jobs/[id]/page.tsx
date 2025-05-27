@@ -216,13 +216,13 @@ export default function JobPage() {
                   </div>
                 </div>
 
-                {job.acceptedBy && (
+                {job.accepted_by && (
                   <div className="flex items-start gap-4">
                     <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
                       <User className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <p className="font-medium">Accepted by {job.acceptedBy}</p>
+                      <p className="font-medium">Accepted by {job.accepted_by}</p>
                       <p className="text-sm text-muted-foreground">Job assigned to contractor</p>
                     </div>
                   </div>
@@ -239,12 +239,12 @@ export default function JobPage() {
                         {formatDateTime(job.onsite_time)}
                       </p>
                       
-                      {job.workStartedImage && (
+                      {job.work_started_image && (
                         <div className="mb-3">
                           <p className="text-xs text-muted-foreground mb-2">Problem Photo:</p>
                           <div className="relative w-full max-w-md h-48 rounded-lg overflow-hidden border">
                             <Image
-                              src={job.workStartedImage}
+                              src={job.work_started_image}
                               alt="Problem photo - before work"
                               width={400}
                               height={192}
@@ -254,13 +254,13 @@ export default function JobPage() {
                         </div>
                       )}
                       
-                      {job.workStartedNotes && (
+                      {job.work_started_notes && (
                         <div className="bg-muted p-3 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
                             <Camera className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium">Contractor Notes</span>
                           </div>
-                          <p className="text-sm">{job.workStartedNotes}</p>
+                          <p className="text-sm">{job.work_started_notes}</p>
                         </div>
                       )}
                     </div>
@@ -278,12 +278,12 @@ export default function JobPage() {
                         {formatDateTime(job.completed_time)}
                       </p>
                       
-                      {job.workCompletedImage && (
+                      {job.work_completed_image && (
                         <div className="mb-3">
                           <p className="text-xs text-muted-foreground mb-2">Completed Work Photo:</p>
                           <div className="relative w-full max-w-md h-48 rounded-lg overflow-hidden border">
                             <Image
-                              src={job.workCompletedImage}
+                              src={job.work_completed_image}
                               alt="Completed work photo - after fix"
                               width={400}
                               height={192}
@@ -293,13 +293,13 @@ export default function JobPage() {
                         </div>
                       )}
                       
-                      {job.workCompletedNotes && (
+                      {job.work_completed_notes && (
                         <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800">
                           <div className="flex items-center gap-2 mb-2">
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
                             <span className="text-sm font-medium text-green-800 dark:text-green-200">Completion Report</span>
                           </div>
-                          <p className="text-sm text-green-700 dark:text-green-300">{job.workCompletedNotes}</p>
+                          <p className="text-sm text-green-700 dark:text-green-300">{job.work_completed_notes}</p>
                         </div>
                       )}
                     </div>
@@ -340,10 +340,10 @@ export default function JobPage() {
                 </div>
               </div>
 
-              {job.acceptedBy && (
+              {job.accepted_by && (
                 <div>
                   <p className="font-medium">Assigned Contractor</p>
-                  <p className="text-sm text-muted-foreground">{job.acceptedBy}</p>
+                  <p className="text-sm text-muted-foreground">{job.accepted_by}</p>
                 </div>
               )}
             </CardContent>

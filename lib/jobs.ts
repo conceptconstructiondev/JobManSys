@@ -90,6 +90,23 @@ export async function getJobsByUser(userEmail: string): Promise<Job[]> {
   }
 }
 
+// Get jobs by status
+export async function getJobsByStatus(status: Job['status']): Promise<Job[]> {
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('status', status)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching jobs by status:', error)
+    throw error
+  }
+}
+
 // Get a single job by ID
 export async function getJobById(jobId: string): Promise<Job | null> {
   try {

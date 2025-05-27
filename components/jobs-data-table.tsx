@@ -173,11 +173,6 @@ export function JobsDataTable<TData, TValue>({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        {globalFilter && (
-          <div className="text-sm text-muted-foreground mb-2">
-            Searching for: "{globalFilter}" - Found {table.getFilteredRowModel().rows.length} results
-          </div>
-        )}
         <div className="rounded-md border">
           <Table>
             <TableHeader>

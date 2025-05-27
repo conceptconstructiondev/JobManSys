@@ -11,9 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, ExternalLink, X, CheckCircle2 } from "lucide-react"
+import { MoreHorizontal, ExternalLink, CheckCircle2, X } from "lucide-react"
 import Link from "next/link"
-import { formatDate, formatDateTime } from '@/lib/dateUtils'
 
 // Job type definition
 export type Job = {
@@ -28,6 +27,7 @@ export type Job = {
   completed_time: string | null
   invoiced: boolean
   created_at: string
+  updated_at?: string
   work_started_image?: string
   work_started_notes?: string
   work_completed_image?: string
