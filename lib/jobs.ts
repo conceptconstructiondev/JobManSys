@@ -10,7 +10,8 @@ import {
   where,
   orderBy,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  onSnapshot
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { Job } from './jobs-data'
@@ -70,12 +71,12 @@ export async function getJobsByStatus(status: Job['status']): Promise<Job[]> {
   }
 }
 
-// Get jobs by user
-export async function getJobsByUser(userId: string): Promise<Job[]> {
+// Get jobs by user email instead of user ID
+export async function getJobsByUser(userEmail: string): Promise<Job[]> {
   try {
     const q = query(
       jobsCollection, 
-      where('acceptedBy', '==', userId),
+      where('acceptedBy', '==', userEmail),
       orderBy('createdAt', 'desc')
     )
     const querySnapshot = await getDocs(q)
@@ -194,4 +195,42 @@ export async function toggleJobInvoiced(jobId: string, invoiced: boolean) {
     console.error('Error updating invoice status:', error)
     throw error
   }
+}
+
+// Real-time listener for ALL jobs (no user filter)
+export function subscribeToJobs(callback: (jobs: Job[]) => void) {
+  const q = query(jobsCollection, orderBy('createdAt', 'desc'))
+  
+  return onSnapshot(q, (querySnapshot) => {
+    const jobs = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    })) as Job[]
+    
+    callback(jobs)
+  }, (error) => {
+    console.error('Error listening to jobs:', error)
+  })
+}
+
+// This is the separate function for user-specific jobs (if needed elsewhere)
+export function subscribeToJobsByUser(userEmail: string, callback: (jobs: Job[]) => void) {
+  const q = query(
+    jobsCollection, 
+    where('acceptedBy', '==', userEmail),
+    orderBy('createdAt', 'desc')
+  )
+  
+  return onSnapshot(q, (querySnapshot) => {
+    const jobs = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    })) as Job[]
+    
+    callback(jobs)
+  }, (error) => {
+    console.error('Error listening to user jobs:', error)
+  })
 } 

@@ -5,6 +5,7 @@ export type Job = {
   company: string
   status: "open" | "accepted" | "onsite" | "completed"
   acceptedBy: string | null
+  acceptedAt?: string | null
   onsiteTime: string | null
   completedTime: string | null
   invoiced: boolean
@@ -25,6 +26,7 @@ export const jobsData: Job[] = [
     company: "Tech Corp",
     status: "open",
     acceptedBy: null,
+    acceptedAt: undefined,
     onsiteTime: null,
     completedTime: null,
     invoiced: false,
@@ -37,6 +39,7 @@ export const jobsData: Job[] = [
     company: "Design Studio",
     status: "accepted",
     acceptedBy: "John Smith",
+    acceptedAt: "2024-01-20T10:00:00Z",
     onsiteTime: null,
     completedTime: null,
     invoiced: false,
@@ -49,6 +52,7 @@ export const jobsData: Job[] = [
     company: "Startup Inc",
     status: "onsite",
     acceptedBy: "Mike Johnson", 
+    acceptedAt: "2024-01-25T09:00:00Z",
     onsiteTime: "2024-01-25T09:00:00Z",
     completedTime: null,
     invoiced: false,
@@ -63,6 +67,7 @@ export const jobsData: Job[] = [
     company: "Corporate Plaza",
     status: "completed",
     acceptedBy: "Sarah Wilson",
+    acceptedAt: "2024-01-22T10:00:00Z",
     onsiteTime: "2024-01-22T10:00:00Z",
     completedTime: "2024-01-22T15:30:00Z",
     invoiced: true,

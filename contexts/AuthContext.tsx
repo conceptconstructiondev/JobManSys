@@ -8,6 +8,8 @@ import {
   createUserWithEmailAndPassword
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { updateDoc, doc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 interface AuthContextType {
   user: User | null
@@ -63,6 +65,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error
     }
   }
+
+  const storePushToken = async (userId: string, expoPushToken: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        expoPushToken: expoPushToken,
+        lastTokenUpdate: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error storing push token:', error);
+    }
+  };
 
   const value = {
     user,

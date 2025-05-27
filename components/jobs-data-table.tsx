@@ -53,6 +53,7 @@ export function JobsDataTable<TData, TValue>({
     acceptedBy: true,
     onsiteTime: false,
     completedTime: false,
+    actions: false,
   })
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState("")

@@ -22,6 +22,7 @@ export type Job = {
   company: string
   status: "open" | "accepted" | "onsite" | "completed"
   acceptedBy: string | null
+  acceptedAt?: string | null
   onsiteTime: string | null
   completedTime: string | null
   invoiced: boolean
@@ -36,11 +37,16 @@ export const columns: ColumnDef<Job>[] = [
   {
     accessorKey: "id",
     header: "Job ID",
-    cell: ({ row }) => (
-      <div className="font-medium text-blue-600">
-        {row.getValue("id")}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const fullId = row.getValue("id") as string
+      // Show first 8 characters of the ID
+      const truncatedId = fullId.substring(0, 8)
+      return (
+        <div className="font-medium text-blue-600" title={fullId}>
+          {truncatedId}...
+        </div>
+      )
+    },
   },
   {
     accessorKey: "createdAt",
@@ -103,10 +109,20 @@ export const columns: ColumnDef<Job>[] = [
     header: "Accepted By",
     cell: ({ row }) => {
       const acceptedBy = row.getValue("acceptedBy")
-      return acceptedBy ? (
-        <span className="text-sm">{acceptedBy as string}</span>
-      ) : (
-        <span className="text-sm text-muted-foreground">-</span>
+      if (!acceptedBy) {
+        return <span className="text-sm text-muted-foreground">-</span>
+      }
+      
+      const fullValue = acceptedBy as string
+      // Truncate to first 12 characters for emails or names
+      const truncatedValue = fullValue.length > 12 
+        ? fullValue.substring(0, 12) + "..." 
+        : fullValue
+      
+      return (
+        <span className="text-sm" title={fullValue}>
+          {truncatedValue}
+        </span>
       )
     },
   },
@@ -212,13 +228,13 @@ export const columns: ColumnDef<Job>[] = [
                 View details
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            {/* <DropdownMenuItem>
               Edit job
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            </DropdownMenuItem> */}
+            {/* <DropdownMenuSeparator />
             <DropdownMenuItem>
               {job.invoiced ? "Mark as not invoiced" : "Mark as invoiced"}
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
           </DropdownMenuContent>
         </DropdownMenu>
       )
