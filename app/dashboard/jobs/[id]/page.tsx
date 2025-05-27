@@ -107,8 +107,16 @@ export default function JobPage() {
   const StatusIcon = config.icon
 
   // Helper function for consistent date formatting
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A'
+    
     const date = new Date(dateString)
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date'
+    }
+    
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: '2-digit',
@@ -116,8 +124,16 @@ export default function JobPage() {
     })
   }
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A'
+    
     const date = new Date(dateString)
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date'
+    }
+    
     const formattedDate = date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: '2-digit',
@@ -128,7 +144,8 @@ export default function JobPage() {
       minute: '2-digit',
       hour12: false
     })
-    return `${formattedDate} at ${formattedTime}`
+    
+    return `${formattedDate} ${formattedTime}`
   }
 
   return (
@@ -194,7 +211,7 @@ export default function JobPage() {
                   <div>
                     <p className="font-medium">Job Created</p>
                     <p className="text-sm text-muted-foreground">
-                      {formatDate(job.createdAt)}
+                      {formatDate(job.created_at)}
                     </p>
                   </div>
                 </div>
@@ -211,7 +228,7 @@ export default function JobPage() {
                   </div>
                 )}
 
-                {job.onsiteTime && (
+                {job.onsite_time && (
                   <div className="flex items-start gap-4">
                     <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
                       <Clock className="h-4 w-4 text-white" />
@@ -219,7 +236,7 @@ export default function JobPage() {
                     <div className="flex-1">
                       <p className="font-medium">Work Started</p>
                       <p className="text-sm text-muted-foreground mb-3">
-                        {formatDateTime(job.onsiteTime)}
+                        {formatDateTime(job.onsite_time)}
                       </p>
                       
                       {job.workStartedImage && (
@@ -250,7 +267,7 @@ export default function JobPage() {
                   </div>
                 )}
 
-                {job.completedTime && (
+                {job.completed_time && (
                   <div className="flex items-start gap-4">
                     <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
                       <CheckCircle2 className="h-4 w-4 text-white" />
@@ -258,7 +275,7 @@ export default function JobPage() {
                     <div className="flex-1">
                       <p className="font-medium">Job Completed</p>
                       <p className="text-sm text-muted-foreground mb-3">
-                        {formatDateTime(job.completedTime)}
+                        {formatDateTime(job.completed_time)}
                       </p>
                       
                       {job.workCompletedImage && (
