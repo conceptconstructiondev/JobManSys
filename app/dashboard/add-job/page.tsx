@@ -9,6 +9,7 @@ import { ArrowLeft, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createJob } from "@/lib/jobs"
+import { JobsCache } from "@/lib/jobsCache"
 
 export default function AddJobPage() {
   const router = useRouter()
@@ -38,12 +39,18 @@ export default function AddJobPage() {
         company: formData.company,
         status: "open",
         acceptedBy: null,
+        acceptedAt: null,
         onsiteTime: null,
         completedTime: null,
         invoiced: false,
       })
 
       console.log("New job created with ID:", jobId)
+      
+      // Clear cache so dashboard will fetch fresh data including the new job
+      JobsCache.clear()
+      
+      // Navigate back to dashboard
       router.push("/dashboard")
     } catch (error) {
       console.error("Error creating job:", error)
@@ -67,7 +74,7 @@ export default function AddJobPage() {
         <CardHeader className="space-y-2 p-4 md:p-6">
           <CardTitle className="text-lg md:text-xl">Job Details</CardTitle>
           <CardDescription className="text-sm">
-           
+            Fill in the details for the new job
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0">
