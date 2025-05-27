@@ -6,7 +6,8 @@ import { useOptimizedJobs } from "@/hooks/useOptimizedJobs"
 import { useAuth } from "@/contexts/AuthContext"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { Button } from "@/components/ui/button"
-import { RefreshCw } from "lucide-react"
+import { RefreshCw, Plus } from "lucide-react"
+import Link from "next/link"
 
 export default function DashboardPage() {
   const { jobs, loading, refresh } = useOptimizedJobs()
@@ -28,6 +29,15 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
       <div className="space-y-4">
+        {/* Full-width Add Job Button */}
+        <Button asChild className="w-full h-12 text-lg">
+          <Link href="/dashboard/add-job" className="flex items-center justify-center gap-2">
+            <Plus className="h-5 w-5" />
+            Add New Job
+          </Link>
+        </Button>
+
+        {/* Header Section */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Job Dashboard</h1>
           <div className="flex items-center gap-4">
@@ -46,6 +56,7 @@ export default function DashboardPage() {
           </div>
         </div>
         
+        {/* Jobs Table */}
         <JobsDataTable columns={columns} data={jobs} />
       </div>
     </ProtectedRoute>

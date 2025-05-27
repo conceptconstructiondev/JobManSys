@@ -81,7 +81,7 @@ export function useOptimizedJobs() {
         if (isActiveRef.current) {
           fetchJobs()
         }
-      }, 10 * 60 * 1000) // Changed from 2 minutes to 10 minutes
+      }, 10 * 60 * 1000)
     }
 
     // Initial load

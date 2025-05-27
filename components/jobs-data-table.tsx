@@ -55,7 +55,6 @@ export function JobsDataTable<TData, TValue>({
     acceptedBy: true,
     onsiteTime: false,
     completedTime: false,
-    actions: false,
   })
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState("")
@@ -79,6 +78,20 @@ export function JobsDataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    globalFilterFn: (row, columnId, value) => {
+      // Define which columns to search
+      const searchableFields = [
+        'id', 'title', 'description', 'company', 'status', 'acceptedBy'
+      ]
+      
+      const searchValue = String(value).toLowerCase()
+      
+      return searchableFields.some(field => {
+        const cellValue = row.getValue(field)
+        if (!cellValue) return false
+        return String(cellValue).toLowerCase().includes(searchValue)
+      })
+    },
     state: {
       sorting,
       columnFilters,
@@ -90,7 +103,6 @@ export function JobsDataTable<TData, TValue>({
   })
 
   const handleRowClick = (row: Row<TData>) => {
-    // Get the job ID from the row data
     const jobId = (row.original as { id: string }).id
     router.push(`/dashboard/jobs/${jobId}`)
   }
@@ -100,6 +112,12 @@ export function JobsDataTable<TData, TValue>({
     setLastUpdate(new Date())
     setIsFromCache(JobsCache.isValid())
   }, [data])
+
+  // Add debug logging
+  useEffect(() => {
+    console.log('Table data sample:', data.slice(0, 2))
+    console.log('Global filter value:', globalFilter)
+  }, [data, globalFilter])
 
   return (
     <div className="space-y-4">
@@ -121,7 +139,11 @@ export function JobsDataTable<TData, TValue>({
           <Input
             placeholder="Search jobs..."
             value={globalFilter ?? ""}
-            onChange={(event) => setGlobalFilter(String(event.target.value))}
+            onChange={(event) => {
+              const value = String(event.target.value)
+              console.log('Global filter changed to:', value)
+              setGlobalFilter(value)
+            }}
             className="max-w-sm"
           />
           <DropdownMenu>
@@ -151,6 +173,11 @@ export function JobsDataTable<TData, TValue>({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        {globalFilter && (
+          <div className="text-sm text-muted-foreground mb-2">
+            Searching for: "{globalFilter}" - Found {table.getFilteredRowModel().rows.length} results
+          </div>
+        )}
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -172,13 +199,13 @@ export function JobsDataTable<TData, TValue>({
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
+              {table.getFilteredRowModel().rows?.length ? (
+                table.getFilteredRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    className="cursor-pointer hover:bg-muted/50"
                     onClick={() => handleRowClick(row)}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
@@ -228,6 +255,16 @@ export function JobsDataTable<TData, TValue>({
           </div>
         </div>
       </div>
+      <Button 
+        onClick={() => {
+          console.log('All jobs data:', data)
+          console.log('Sample job:', data[0])
+        }}
+        variant="outline"
+        size="sm"
+      >
+        Debug Data
+      </Button>
     </div>
   )
 } 

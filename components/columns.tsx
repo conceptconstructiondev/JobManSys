@@ -44,7 +44,7 @@ export const columns: ColumnDef<Job>[] = [
       return (
         <div className="font-medium text-blue-600" title={fullId}>
           {truncatedId}...
-        </div>
+      </div>
       )
     },
   },
@@ -107,14 +107,16 @@ export const columns: ColumnDef<Job>[] = [
   {
     accessorKey: "acceptedBy",
     header: "Accepted By",
+    enableGlobalFilter: true,
     cell: ({ row }) => {
       const acceptedBy = row.getValue("acceptedBy")
+      console.log('AcceptedBy cell value:', acceptedBy) // Debug log
+      
       if (!acceptedBy) {
         return <span className="text-sm text-muted-foreground">-</span>
       }
       
       const fullValue = acceptedBy as string
-      // Truncate to first 12 characters for emails or names
       const truncatedValue = fullValue.length > 12 
         ? fullValue.substring(0, 12) + "..." 
         : fullValue
