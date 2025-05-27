@@ -11,10 +11,12 @@ import {
   orderBy,
   Timestamp,
   serverTimestamp,
-  onSnapshot
+  onSnapshot,
+  limit
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { Job } from './jobs-data'
+import { useState, useEffect } from 'react'
 
 // Collection reference
 const jobsCollection = collection(db, 'jobs')
@@ -45,7 +47,7 @@ export async function getAllJobs(): Promise<Job[]> {
       createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
     })) as Job[]
   } catch (error) {
-    console.error('Error fetching jobs:', error)
+    console.error('Error fetching all jobs:', error)
     throw error
   }
 }
@@ -197,21 +199,33 @@ export async function toggleJobInvoiced(jobId: string, invoiced: boolean) {
   }
 }
 
-// Real-time listener for ALL jobs (no user filter)
+// Real-time listener for ALL jobs with better error handling
 export function subscribeToJobs(callback: (jobs: Job[]) => void) {
+  console.log('Setting up Firestore listener for all jobs')
+  
   const q = query(jobsCollection, orderBy('createdAt', 'desc'))
   
-  return onSnapshot(q, (querySnapshot) => {
-    const jobs = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-    })) as Job[]
-    
-    callback(jobs)
-  }, (error) => {
-    console.error('Error listening to jobs:', error)
-  })
+  return onSnapshot(q, 
+    (querySnapshot) => {
+      console.log('Firestore snapshot received, docs:', querySnapshot.docs.length)
+      
+      const jobs = querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+        }
+      }) as Job[]
+      
+      console.log('Processed jobs:', jobs.length)
+      callback(jobs)
+    }, 
+    (error) => {
+      console.error('Firestore listener error:', error)
+      // You might want to call an error callback here
+    }
+  )
 }
 
 // This is the separate function for user-specific jobs (if needed elsewhere)
@@ -232,5 +246,86 @@ export function subscribeToJobsByUser(userEmail: string, callback: (jobs: Job[])
     callback(jobs)
   }, (error) => {
     console.error('Error listening to user jobs:', error)
+  })
+}
+
+// Only listen to jobs from the last 30 days
+export function subscribeToRecentJobs(callback: (jobs: Job[]) => void) {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  
+  const q = query(
+    jobsCollection,
+    where('createdAt', '>=', Timestamp.fromDate(thirtyDaysAgo)),
+    orderBy('createdAt', 'desc'),
+    limit(100) // Reasonable limit
+  )
+  
+  return onSnapshot(q, (querySnapshot) => {
+    // Only update on actual server changes
+    if (querySnapshot.metadata.fromCache && !querySnapshot.metadata.hasPendingWrites) {
+      return
+    }
+
+    const jobs = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    })) as Job[]
+    
+    callback(jobs)
+  })
+}
+
+// Alternative: Polling approach (fewer reads, slight delay)
+export function useJobsPolling(intervalMs = 30000) { // Poll every 30 seconds
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const jobsData = await getAllJobs() // Your existing function
+        setJobs(jobsData)
+        setLoading(false)
+      } catch (error) {
+        console.error('Error fetching jobs:', error)
+      }
+    }
+
+    // Initial fetch
+    fetchJobs()
+
+    // Set up polling
+    const interval = setInterval(fetchJobs, intervalMs)
+
+    return () => clearInterval(interval)
+  }, [intervalMs])
+
+  return { jobs, loading }
+}
+
+// Listen only to status changes, not all field updates
+export function subscribeToJobStatusChanges(callback: (jobs: Job[]) => void) {
+  const q = query(
+    jobsCollection,
+    where('status', 'in', ['open', 'accepted', 'onsite', 'completed']),
+    orderBy('createdAt', 'desc'),
+    limit(50)
+  )
+  
+  return onSnapshot(q, (querySnapshot) => {
+    // Process only documents that actually changed
+    const changes = querySnapshot.docChanges()
+    
+    if (changes.length === 0) return // No actual changes
+    
+    const jobs = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+    })) as Job[]
+    
+    callback(jobs)
   })
 } 

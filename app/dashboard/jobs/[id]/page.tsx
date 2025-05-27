@@ -10,6 +10,7 @@ import Link from "next/link"
 import { getJobById, toggleJobInvoiced } from "@/lib/jobs"
 import { useAuth } from "@/contexts/AuthContext"
 import { Job } from "@/lib/jobs-data"
+import Image from "next/image"
 
 export default function JobPage() {
   const params = useParams()
@@ -225,9 +226,11 @@ export default function JobPage() {
                         <div className="mb-3">
                           <p className="text-xs text-muted-foreground mb-2">Problem Photo:</p>
                           <div className="relative w-full max-w-md h-48 rounded-lg overflow-hidden border">
-                            <img
+                            <Image
                               src={job.workStartedImage}
                               alt="Problem photo - before work"
+                              width={400}
+                              height={192}
                               className="w-full h-full object-cover"
                             />
                           </div>
@@ -262,9 +265,11 @@ export default function JobPage() {
                         <div className="mb-3">
                           <p className="text-xs text-muted-foreground mb-2">Completed Work Photo:</p>
                           <div className="relative w-full max-w-md h-48 rounded-lg overflow-hidden border">
-                            <img
+                            <Image
                               src={job.workCompletedImage}
                               alt="Completed work photo - after fix"
+                              width={400}
+                              height={192}
                               className="w-full h-full object-cover"
                             />
                           </div>

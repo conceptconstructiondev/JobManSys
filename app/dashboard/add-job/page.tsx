@@ -9,11 +9,9 @@ import { ArrowLeft, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createJob } from "@/lib/jobs"
-import { useAuth } from "@/contexts/AuthContext"
 
 export default function AddJobPage() {
   const router = useRouter()
-  const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
