@@ -52,9 +52,9 @@ export function JobsDataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     // Show all columns by default
     description: true,
-    acceptedBy: true,
-    onsiteTime: false,
-    completedTime: false,
+    accepted_by: true,
+    onsite_time: false,
+    completed_time: false,
   })
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState("")
@@ -79,9 +79,9 @@ export function JobsDataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     globalFilterFn: (row, columnId, value) => {
-      // Define which columns to search
+      // Update field names to match Supabase schema (snake_case)
       const searchableFields = [
-        'id', 'title', 'description', 'company', 'status', 'acceptedBy'
+        'id', 'title', 'description', 'company', 'status', 'accepted_by'
       ]
       
       const searchValue = String(value).toLowerCase()

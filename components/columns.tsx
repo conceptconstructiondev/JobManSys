@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, ExternalLink, X, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
+import { formatDate, formatDateTime } from '@/lib/dateUtils'
 
 // Job type definition
 export type Job = {
@@ -21,16 +22,16 @@ export type Job = {
   description: string
   company: string
   status: "open" | "accepted" | "onsite" | "completed"
-  acceptedBy: string | null
-  acceptedAt?: string | null
-  onsiteTime: string | null
-  completedTime: string | null
+  accepted_by: string | null
+  accepted_at?: string | null
+  onsite_time: string | null
+  completed_time: string | null
   invoiced: boolean
-  createdAt: string
-  workStartedImage?: string
-  workStartedNotes?: string
-  workCompletedImage?: string
-  workCompletedNotes?: string
+  created_at: string
+  work_started_image?: string
+  work_started_notes?: string
+  work_completed_image?: string
+  work_completed_notes?: string
 }
 
 export const columns: ColumnDef<Job>[] = [
@@ -49,16 +50,33 @@ export const columns: ColumnDef<Job>[] = [
     },
   },
   {
-    accessorKey: "createdAt",
+    accessorKey: "created_at",
     header: "Date Created",
     cell: ({ row }) => {
-      const date = new Date(row.getValue("createdAt"))
-      // Use a consistent format to avoid hydration mismatch
+      const dateValue = row.getValue("created_at")
+      
+      // Handle different date formats
+      let date: Date
+      if (typeof dateValue === 'string') {
+        date = new Date(dateValue)
+      } else if (dateValue instanceof Date) {
+        date = dateValue
+      } else {
+        // Fallback to current date if invalid
+        date = new Date()
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return <div className="text-sm text-red-500">Invalid Date</div>
+      }
+      
       const formattedDate = date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
       })
+      
       return (
         <div className="text-sm">
           {formattedDate}
@@ -105,11 +123,11 @@ export const columns: ColumnDef<Job>[] = [
     },
   },
   {
-    accessorKey: "acceptedBy",
+    accessorKey: "accepted_by",
     header: "Accepted By",
     enableGlobalFilter: true,
     cell: ({ row }) => {
-      const acceptedBy = row.getValue("acceptedBy")
+      const acceptedBy = row.getValue("accepted_by")
       console.log('AcceptedBy cell value:', acceptedBy) // Debug log
       
       if (!acceptedBy) {
@@ -129,15 +147,21 @@ export const columns: ColumnDef<Job>[] = [
     },
   },
   {
-    accessorKey: "onsiteTime",
+    accessorKey: "onsite_time",
     header: "Onsite Time",
     cell: ({ row }) => {
-      const onsiteTime = row.getValue("onsiteTime")
+      const onsiteTime = row.getValue("onsite_time")
       if (!onsiteTime) {
         return <span className="text-sm text-muted-foreground">-</span>
       }
       
       const date = new Date(onsiteTime as string)
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return <span className="text-sm text-red-500">Invalid Date</span>
+      }
+      
       const formattedDate = date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',
@@ -157,15 +181,21 @@ export const columns: ColumnDef<Job>[] = [
     },
   },
   {
-    accessorKey: "completedTime",
+    accessorKey: "completed_time",
     header: "Completed Time",
     cell: ({ row }) => {
-      const completedTime = row.getValue("completedTime")
+      const completedTime = row.getValue("completed_time")
       if (!completedTime) {
         return <span className="text-sm text-muted-foreground">-</span>
       }
       
       const date = new Date(completedTime as string)
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return <span className="text-sm text-red-500">Invalid Date</span>
+      }
+      
       const formattedDate = date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',

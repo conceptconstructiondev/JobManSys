@@ -1,93 +1,63 @@
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
-import { 
-  User,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  createUserWithEmailAndPassword
-} from 'firebase/auth'
-import { auth } from '@/lib/firebase'
-import { updateDoc, doc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { supabase } from '@/lib/supabase'
+import { User } from '@supabase/supabase-js'
 
 interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType)
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    return unsubscribe
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    )
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password)
-    } catch (error) {
-      throw error
-    }
-  }
-
-  const signUp = async (email: string, password: string) => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password)
-    } catch (error) {
-      throw error
-    }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (error) throw error
   }
 
   const signOut = async () => {
-    try {
-      await firebaseSignOut(auth)
-    } catch (error) {
-      throw error
-    }
-  }
-
-  const storePushToken = async (userId: string, expoPushToken: string) => {
-    try {
-      await updateDoc(doc(db, 'users', userId), {
-        expoPushToken: expoPushToken,
-        lastTokenUpdate: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Error storing push token:', error);
-    }
-  };
-
-  const value = {
-    user,
-    loading,
-    signIn,
-    signUp,
-    signOut,
+    const { error } = await supabase.auth.signOut()
+    if (error) throw error
   }
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )
+}
+
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 } 

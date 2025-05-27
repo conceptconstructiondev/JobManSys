@@ -38,16 +38,16 @@ export default function AddJobPage() {
         description: formData.description,
         company: formData.company,
         status: "open",
-        acceptedBy: null,
-        acceptedAt: null,
-        onsiteTime: null,
-        completedTime: null,
+        accepted_by: null,
+        accepted_at: null,
+        onsite_time: null,
+        completed_time: null,
         invoiced: false,
       })
 
       console.log("New job created with ID:", jobId)
       
-      // Clear cache so dashboard will fetch fresh data including the new job
+      // Clear cache so dashboard will fetch fresh data
       JobsCache.clear()
       
       // Navigate back to dashboard

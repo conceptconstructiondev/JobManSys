@@ -1,34 +1,31 @@
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  doc, 
-  updateDoc, 
-  deleteDoc, 
-  getDoc,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  serverTimestamp,
-  onSnapshot,
-  limit
-} from 'firebase/firestore'
-import { db } from './firebase'
-import { Job } from './jobs-data'
+import { supabase, Job } from './supabase'
 import { useState, useEffect } from 'react'
 
-// Collection reference
-const jobsCollection = collection(db, 'jobs')
-
 // Create a new job
-export async function createJob(jobData: Omit<Job, 'id' | 'createdAt'>) {
+export async function createJob(jobData: Omit<Job, 'id' | 'created_at' | 'updated_at'>) {
   try {
-    const docRef = await addDoc(jobsCollection, {
-      ...jobData,
-      createdAt: serverTimestamp(),
-    })
-    return docRef.id
+    const { data, error } = await supabase
+      .from('jobs')
+      .insert([{
+        title: jobData.title,
+        description: jobData.description,
+        company: jobData.company,
+        status: jobData.status,
+        accepted_by: jobData.accepted_by,
+        accepted_at: jobData.accepted_at,
+        onsite_time: jobData.onsite_time,
+        completed_time: jobData.completed_time,
+        invoiced: jobData.invoiced,
+        work_started_image: jobData.work_started_image,
+        work_started_notes: jobData.work_started_notes,
+        work_completed_image: jobData.work_completed_image,
+        work_completed_notes: jobData.work_completed_notes,
+      }])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data.id
   } catch (error) {
     console.error('Error creating job:', error)
     throw error
@@ -38,56 +35,55 @@ export async function createJob(jobData: Omit<Job, 'id' | 'createdAt'>) {
 // Get all jobs
 export async function getAllJobs(): Promise<Job[]> {
   try {
-    const q = query(jobsCollection, orderBy('createdAt', 'desc'))
-    const querySnapshot = await getDocs(q)
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
     
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-    })) as Job[]
+    // Debug: Log the first job to see date format
+    if (data && data.length > 0) {
+      console.log('Sample job data:', data[0])
+      console.log('created_at value:', data[0].created_at)
+      console.log('created_at type:', typeof data[0].created_at)
+    }
+    
+    return data || []
   } catch (error) {
     console.error('Error fetching all jobs:', error)
     throw error
   }
 }
 
-// Get jobs by status
-export async function getJobsByStatus(status: Job['status']): Promise<Job[]> {
+// Get available jobs (for mobile - only open jobs)
+export async function getAvailableJobs(): Promise<Job[]> {
   try {
-    const q = query(
-      jobsCollection, 
-      where('status', '==', status),
-      orderBy('createdAt', 'desc')
-    )
-    const querySnapshot = await getDocs(q)
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-    })) as Job[]
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
   } catch (error) {
-    console.error('Error fetching jobs by status:', error)
+    console.error('Error fetching available jobs:', error)
     throw error
   }
 }
 
-// Get jobs by user email instead of user ID
+// Get jobs by user
 export async function getJobsByUser(userEmail: string): Promise<Job[]> {
   try {
-    const q = query(
-      jobsCollection, 
-      where('acceptedBy', '==', userEmail),
-      orderBy('createdAt', 'desc')
-    )
-    const querySnapshot = await getDocs(q)
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-    })) as Job[]
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('accepted_by', userEmail)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
   } catch (error) {
     console.error('Error fetching user jobs:', error)
     throw error
@@ -97,18 +93,17 @@ export async function getJobsByUser(userEmail: string): Promise<Job[]> {
 // Get a single job by ID
 export async function getJobById(jobId: string): Promise<Job | null> {
   try {
-    const docRef = doc(db, 'jobs', jobId)
-    const docSnap = await getDoc(docRef)
-    
-    if (docSnap.exists()) {
-      return {
-        id: docSnap.id,
-        ...docSnap.data(),
-        createdAt: docSnap.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-      } as Job
-    } else {
-      return null
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') return null // Not found
+      throw error
     }
+    return data
   } catch (error) {
     console.error('Error fetching job:', error)
     throw error
@@ -118,11 +113,12 @@ export async function getJobById(jobId: string): Promise<Job | null> {
 // Update a job
 export async function updateJob(jobId: string, updates: Partial<Job>) {
   try {
-    const docRef = doc(db, 'jobs', jobId)
-    await updateDoc(docRef, {
-      ...updates,
-      updatedAt: serverTimestamp()
-    })
+    const { error } = await supabase
+      .from('jobs')
+      .update(updates)
+      .eq('id', jobId)
+
+    if (error) throw error
   } catch (error) {
     console.error('Error updating job:', error)
     throw error
@@ -132,35 +128,58 @@ export async function updateJob(jobId: string, updates: Partial<Job>) {
 // Delete a job
 export async function deleteJob(jobId: string) {
   try {
-    const docRef = doc(db, 'jobs', jobId)
-    await deleteDoc(docRef)
+    const { error } = await supabase
+      .from('jobs')
+      .delete()
+      .eq('id', jobId)
+
+    if (error) throw error
   } catch (error) {
     console.error('Error deleting job:', error)
     throw error
   }
 }
 
-// Accept a job
-export async function acceptJob(jobId: string, userId: string, userEmail: string) {
+// Accept a job (works for both web and mobile)
+export async function acceptJob(jobId: string, userEmail: string) {
   try {
-    await updateJob(jobId, {
-      status: 'accepted',
-      acceptedBy: userEmail, // or userId, depending on your preference
-      acceptedAt: new Date().toISOString()
-    })
+    const { error } = await supabase
+      .from('jobs')
+      .update({
+        status: 'accepted',
+        accepted_by: userEmail,
+        accepted_at: new Date().toISOString()
+      })
+      .eq('id', jobId)
+
+    if (error) throw error
+    console.log('Job accepted successfully')
+    return true
   } catch (error) {
     console.error('Error accepting job:', error)
     throw error
   }
 }
 
-// Mark job as onsite
-export async function markJobOnsite(jobId: string, onsiteTime?: string) {
+// Mark job as onsite (with optional image/notes for mobile)
+export async function markJobOnsite(jobId: string, onsiteData?: {
+  onsite_time?: string
+  work_started_image?: string
+  work_started_notes?: string
+}) {
   try {
-    await updateJob(jobId, {
-      status: 'onsite',
-      onsiteTime: onsiteTime || new Date().toISOString()
-    })
+    const { error } = await supabase
+      .from('jobs')
+      .update({
+        status: 'onsite',
+        onsite_time: onsiteData?.onsite_time || new Date().toISOString(),
+        work_started_image: onsiteData?.work_started_image,
+        work_started_notes: onsiteData?.work_started_notes
+      })
+      .eq('id', jobId)
+
+    if (error) throw error
+    return true
   } catch (error) {
     console.error('Error marking job onsite:', error)
     throw error
@@ -171,82 +190,126 @@ export async function markJobOnsite(jobId: string, onsiteTime?: string) {
 export async function completeJob(
   jobId: string, 
   completionData: {
-    workCompletedImage?: string
-    workCompletedNotes?: string
+    work_completed_image?: string
+    work_completed_notes?: string
   }
 ) {
   try {
-    await updateJob(jobId, {
-      status: 'completed',
-      completedTime: new Date().toISOString(),
-      ...completionData
-    })
+    const { error } = await supabase
+      .from('jobs')
+      .update({
+        status: 'completed',
+        completed_time: new Date().toISOString(),
+        ...completionData
+      })
+      .eq('id', jobId)
+
+    if (error) throw error
+    return true
   } catch (error) {
     console.error('Error completing job:', error)
     throw error
   }
 }
 
-// Mark job as invoiced/not invoiced
+// Toggle job invoiced status
 export async function toggleJobInvoiced(jobId: string, invoiced: boolean) {
   try {
-    await updateJob(jobId, {
-      invoiced: invoiced
-    })
+    const { error } = await supabase
+      .from('jobs')
+      .update({
+        invoiced: invoiced
+      })
+      .eq('id', jobId)
+
+    if (error) throw error
   } catch (error) {
     console.error('Error updating invoice status:', error)
     throw error
   }
 }
 
-// Real-time listener for ALL jobs with better error handling
+// Real-time subscription for all jobs (web dashboard)
 export function subscribeToJobs(callback: (jobs: Job[]) => void) {
-  console.log('Setting up Firestore listener for all jobs')
-  
-  const q = query(jobsCollection, orderBy('createdAt', 'desc'))
-  
-  return onSnapshot(q, 
-    (querySnapshot) => {
-      console.log('Firestore snapshot received, docs:', querySnapshot.docs.length)
-      
-      const jobs = querySnapshot.docs.map(doc => {
-        const data = doc.data()
-        return {
-          id: doc.id,
-          ...data,
-          createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-        }
-      }) as Job[]
-      
-      console.log('Processed jobs:', jobs.length)
-      callback(jobs)
-    }, 
-    (error) => {
-      console.error('Firestore listener error:', error)
-      // You might want to call an error callback here
-    }
-  )
+  const subscription = supabase
+    .channel('jobs-channel')
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'jobs' 
+      }, 
+      async () => {
+        // Fetch fresh data when changes occur
+        const jobs = await getAllJobs()
+        callback(jobs)
+      }
+    )
+    .subscribe()
+
+  // Initial data fetch
+  getAllJobs().then(callback)
+
+  // Return unsubscribe function
+  return () => {
+    supabase.removeChannel(subscription)
+  }
 }
 
-// This is the separate function for user-specific jobs (if needed elsewhere)
-export function subscribeToJobsByUser(userEmail: string, callback: (jobs: Job[]) => void) {
-  const q = query(
-    jobsCollection, 
-    where('acceptedBy', '==', userEmail),
-    orderBy('createdAt', 'desc')
-  )
-  
-  return onSnapshot(q, (querySnapshot) => {
-    const jobs = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-    })) as Job[]
-    
-    callback(jobs)
-  }, (error) => {
-    console.error('Error listening to user jobs:', error)
-  })
+// Real-time subscription for available jobs (mobile)
+export function subscribeToAvailableJobs(callback: (jobs: Job[]) => void) {
+  const subscription = supabase
+    .channel('available-jobs-channel')
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'jobs',
+        filter: `status=eq.open`
+      }, 
+      async () => {
+        // Fetch fresh data when available jobs change
+        const jobs = await getAvailableJobs()
+        callback(jobs)
+      }
+    )
+    .subscribe()
+
+  // Initial data fetch
+  getAvailableJobs().then(callback)
+
+  // Return unsubscribe function
+  return () => {
+    supabase.removeChannel(subscription)
+  }
+}
+
+// Listen only to status changes, not all field updates
+export function subscribeToJobStatusChanges(callback: (jobs: Job[]) => void) {
+  const subscription = supabase
+    .channel('jobs-status-channel')
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'jobs',
+        filter: `status=in.(${'open,accepted,onsite,completed'})`
+      }, 
+      async () => {
+        // Fetch fresh data when status changes occur
+        const jobs = await getAllJobs()
+        callback(jobs)
+      }
+    )
+    .subscribe()
+
+  // Initial data fetch
+  getAllJobs().then(callback)
+
+  // Return unsubscribe function
+  return () => {
+    supabase.removeChannel(subscription)
+  }
 }
 
 // Only listen to jobs from the last 30 days
@@ -254,27 +317,30 @@ export function subscribeToRecentJobs(callback: (jobs: Job[]) => void) {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   
-  const q = query(
-    jobsCollection,
-    where('createdAt', '>=', Timestamp.fromDate(thirtyDaysAgo)),
-    orderBy('createdAt', 'desc'),
-    limit(100) // Reasonable limit
-  )
-  
-  return onSnapshot(q, (querySnapshot) => {
-    // Only update on actual server changes
-    if (querySnapshot.metadata.fromCache && !querySnapshot.metadata.hasPendingWrites) {
-      return
-    }
+  const subscription = supabase
+    .channel('jobs-recent-channel')
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'jobs',
+        filter: `created_at>=date(${thirtyDaysAgo.toISOString()})`
+      }, 
+      async () => {
+        // Fetch fresh data when jobs from the last 30 days occur
+        const jobs = await getAllJobs()
+        callback(jobs)
+      }
+    )
+    .subscribe()
 
-    const jobs = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-    })) as Job[]
-    
-    callback(jobs)
-  })
+  // Initial data fetch
+  getAllJobs().then(callback)
+
+  // Return unsubscribe function
+  return () => {
+    supabase.removeChannel(subscription)
+  }
 }
 
 // Alternative: Polling approach (fewer reads, slight delay)
@@ -303,29 +369,4 @@ export function useJobsPolling(intervalMs = 30000) { // Poll every 30 seconds
   }, [intervalMs])
 
   return { jobs, loading }
-}
-
-// Listen only to status changes, not all field updates
-export function subscribeToJobStatusChanges(callback: (jobs: Job[]) => void) {
-  const q = query(
-    jobsCollection,
-    where('status', 'in', ['open', 'accepted', 'onsite', 'completed']),
-    orderBy('createdAt', 'desc'),
-    limit(50)
-  )
-  
-  return onSnapshot(q, (querySnapshot) => {
-    // Process only documents that actually changed
-    const changes = querySnapshot.docChanges()
-    
-    if (changes.length === 0) return // No actual changes
-    
-    const jobs = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
-    })) as Job[]
-    
-    callback(jobs)
-  })
 } 
