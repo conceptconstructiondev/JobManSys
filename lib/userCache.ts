@@ -79,6 +79,7 @@ class UserCacheManager {
       updated_at: new Date().toISOString()
     }
     this.saveToStorage()
+    console.log(`✅ Added user: ${name || email} (${userId.substring(0, 8)}...)`)
   }
 }
 
