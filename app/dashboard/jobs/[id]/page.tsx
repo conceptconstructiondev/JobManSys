@@ -1,19 +1,60 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import JobImage from '@/components/JobImage'
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Calendar, Clock, FileText, AlertCircle, User, CheckCircle2, X, Camera, Receipt } from "lucide-react"
-import Link from "next/link"
-import { getJobById, toggleJobInvoiced } from "@/lib/jobs"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/AuthContext"
+import { getJobById, toggleJobInvoiced } from "@/lib/jobs"
 import { Job } from "@/lib/jobs-data"
-import Image from "next/image"
-import { getSignedImageUrl } from "@/lib/supabase"
-import { JOB_STATUS_CONFIG } from "@/lib/status-config"
 import { JobsCache } from "@/lib/jobsCache"
+import { UserCache } from "@/lib/userCache"
+import { JOB_STATUS_CONFIG } from "@/lib/status-config"
+import { AlertCircle, ArrowLeft, Calendar, Camera, CheckCircle2, Clock, FileText, Receipt, User, X } from "lucide-react"
+import Link from "next/link"
+import { useParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+
+const JobSkeleton = () => (
+  <div className="animate-pulse space-y-6">
+    <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+    <div className="h-64 bg-gray-200 rounded"></div>
+  </div>
+)
+
+const getDisplayName = (acceptedBy: string | null): string => {
+  if (!acceptedBy) return 'Not assigned'
+  
+  // Check if it's a UUID
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acceptedBy)
+  
+  if (isUUID) {
+    const name = UserCache.getUserName(acceptedBy)
+    const email = UserCache.getUserEmail(acceptedBy)
+    
+    if (name) return name
+    if (email) return email
+    return `Unknown user (${acceptedBy.substring(0, 8)}...)`
+  }
+  
+  // It's already an email or name
+  return acceptedBy
+}
+
+const getDisplayEmail = (acceptedBy: string | null): string | null => {
+  if (!acceptedBy) return null
+  
+  // Check if it's a UUID
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acceptedBy)
+  
+  if (isUUID) {
+    return UserCache.getUserEmail(acceptedBy)
+  }
+  
+  // It's already an email
+  return acceptedBy
+}
 
 export default function JobPage() {
   const params = useParams()
@@ -22,14 +63,8 @@ export default function JobPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingInvoice, setUpdatingInvoice] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   
-  // Add state for image URLs
-  const [imageUrls, setImageUrls] = useState<{
-    workStarted?: string | null
-    workCompleted?: string | null
-  }>({})
-  const [loadingImages, setLoadingImages] = useState(false)
-
   useEffect(() => {
     async function fetchJob() {
       if (!user) return
@@ -50,34 +85,15 @@ export default function JobPage() {
     }
   }, [params.id, user, authLoading])
 
-  // Load image URLs when job loads
   useEffect(() => {
-    async function loadImageUrls() {
-      if (!job) return
-      
-      setLoadingImages(true)
-      const urls: any = {}
-      
-      try {
-        if (job.work_started_image) {
-          console.log('📸 Loading work started image:', job.work_started_image)
-          urls.workStarted = await getSignedImageUrl(job.work_started_image)
-        }
-        
-        if (job.work_completed_image) {
-          console.log('📸 Loading work completed image:', job.work_completed_image)
-          urls.workCompleted = await getSignedImageUrl(job.work_completed_image)
-        }
-        
-        setImageUrls(urls)
-      } catch (error) {
-        console.error('Error loading image URLs:', error)
-      } finally {
-        setLoadingImages(false)
-      }
+    if (job) {
+      console.log('🔍 Job Debug Info:');
+      console.log('Status:', job.status);
+      console.log('Work started image:', job.work_started_image);
+      console.log('Work completed image:', job.work_completed_image);
+      console.log('Onsite time:', job.onsite_time);
+      console.log('Completed time:', job.completed_time);
     }
-    
-    loadImageUrls()
   }, [job])
 
   const handleToggleInvoiced = async () => {
@@ -138,11 +154,8 @@ export default function JobPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading job details...</p>
-        </div>
+      <div className="container mx-auto p-6 max-w-6xl">
+        <JobSkeleton />
       </div>
     )
   }
@@ -191,9 +204,8 @@ export default function JobPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 space-y-6">
           {/* Job Description */}
           <Card>
             <CardHeader>
@@ -214,6 +226,7 @@ export default function JobPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
+                {/* Job Created - Always show */}
                 <div className="flex items-start gap-4">
                   <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                     <Calendar className="h-4 w-4 text-primary-foreground" />
@@ -226,53 +239,58 @@ export default function JobPage() {
                   </div>
                 </div>
 
+                {/* Job Accepted - Show if accepted */}
                 {job.accepted_by && (
                   <div className="flex items-start gap-4">
                     <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
                       <User className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <p className="font-medium">Accepted by {job.accepted_by}</p>
-                      <p className="text-sm text-muted-foreground">Job assigned to contractor</p>
+                      <p className="font-medium">Accepted by {getDisplayName(job.accepted_by)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {job.accepted_at ? formatDateTime(job.accepted_at) : 'Job assigned to contractor'}
+                        {getDisplayEmail(job.accepted_by) && getDisplayEmail(job.accepted_by) !== getDisplayName(job.accepted_by) && (
+                          <span className="block">Email: {getDisplayEmail(job.accepted_by)}</span>
+                        )}
+                      </p>
                     </div>
                   </div>
                 )}
 
-                {job.onsite_time && (
+                {/* Work Started - Show if onsite_time OR work_started_image OR work_started_notes */}
+                {(job.onsite_time || job.work_started_image || job.work_started_notes) && (
                   <div className="flex items-start gap-4">
                     <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
-                      <Clock className="h-4 w-4 text-white" />
+                      {job.onsite_time ? (
+                        <Clock className="h-4 w-4 text-white" />
+                      ) : (
+                        <Camera className="h-4 w-4 text-white" />
+                      )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Work Started</p>
+                      <p className="font-medium">
+                        {job.onsite_time ? 'Work Started' : 'Work Documentation Added'}
+                      </p>
                       <p className="text-sm text-muted-foreground mb-3">
-                        {formatDateTime(job.onsite_time)}
+                        {job.onsite_time 
+                          ? `Started: ${formatDateTime(job.onsite_time)}` 
+                          : 'Contractor has added documentation'
+                        }
                       </p>
                       
+                      {/* Show image if exists */}
                       {job.work_started_image && (
                         <div className="mb-3">
                           <p className="text-xs text-muted-foreground mb-2">Problem Photo:</p>
-                          <div className="relative w-full rounded-lg overflow-hidden border">
-                            {loadingImages || !imageUrls.workStarted ? (
-                              <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
-                                <span className="text-gray-500">Loading image...</span>
-                              </div>
-                            ) : (
-                              <Image
-                                src={imageUrls.workStarted}
-                                alt="Problem photo - before work"
-                                width={800}
-                                height={600}
-                                className="w-full h-auto object-contain"
-                                onError={(e) => {
-                                  console.error('❌ Image failed to load:', job.work_started_image)
-                                }}
-                              />
-                            )}
-                          </div>
+                          <JobImage
+                            imagePath={job.work_started_image}
+                            alt="Work started photo"
+                            className="w-full h-48 sm:h-64 rounded-lg border"
+                          />
                         </div>
                       )}
                       
+                      {/* Show notes if exist */}
                       {job.work_started_notes && (
                         <div className="bg-muted p-3 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
@@ -286,41 +304,36 @@ export default function JobPage() {
                   </div>
                 )}
 
-                {job.completed_time && (
+                {/* Work Completed - Show if completed_time OR work_completed_image OR work_completed_notes */}
+                {(job.completed_time || job.work_completed_image || job.work_completed_notes) && (
                   <div className="flex items-start gap-4">
                     <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
                       <CheckCircle2 className="h-4 w-4 text-white" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Job Completed</p>
+                      <p className="font-medium">
+                        {job.completed_time ? 'Job Completed' : 'Completion Documentation Added'}
+                      </p>
                       <p className="text-sm text-muted-foreground mb-3">
-                        {formatDateTime(job.completed_time)}
+                        {job.completed_time 
+                          ? `Completed: ${formatDateTime(job.completed_time)}` 
+                          : 'Contractor has added completion documentation'
+                        }
                       </p>
                       
+                      {/* Show image if exists */}
                       {job.work_completed_image && (
                         <div className="mb-3">
                           <p className="text-xs text-muted-foreground mb-2">Completed Work Photo:</p>
-                          <div className="relative w-full rounded-lg overflow-hidden border">
-                            {loadingImages || !imageUrls.workCompleted ? (
-                              <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
-                                <span className="text-gray-500">Loading image...</span>
-                              </div>
-                            ) : (
-                              <Image
-                                src={imageUrls.workCompleted}
-                                alt="Completed work photo - after fix"
-                                width={800}
-                                height={600}
-                                className="w-full h-auto object-contain"
-                                onError={(e) => {
-                                  console.error('❌ Image failed to load:', job.work_completed_image)
-                                }}
-                              />
-                            )}
-                          </div>
+                          <JobImage
+                            imagePath={job.work_completed_image}
+                            alt="Work completed photo"
+                            className="w-full h-48 sm:h-64 rounded-lg border"
+                          />
                         </div>
                       )}
                       
+                      {/* Show notes if exist */}
                       {job.work_completed_notes && (
                         <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800">
                           <div className="flex items-center gap-2 mb-2">
@@ -338,7 +351,6 @@ export default function JobPage() {
           </Card>
         </div>
 
-        {/* Sidebar Info */}
         <div className="space-y-6">
           {/* Job Details - Simplified */}
           <Card>
@@ -371,7 +383,15 @@ export default function JobPage() {
               {job.accepted_by && (
                 <div>
                   <p className="font-medium">Assigned Contractor</p>
-                  <p className="text-sm text-muted-foreground">{job.accepted_by}</p>
+                  <div className="text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground">{getDisplayName(job.accepted_by)}</p>
+                    {getDisplayEmail(job.accepted_by) && getDisplayEmail(job.accepted_by) !== getDisplayName(job.accepted_by) && (
+                      <p>{getDisplayEmail(job.accepted_by)}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ID: {job.accepted_by.substring(0, 8)}...
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>

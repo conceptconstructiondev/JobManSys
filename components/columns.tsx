@@ -14,6 +14,8 @@ import {
 import { MoreHorizontal, ExternalLink, CheckCircle2, X } from "lucide-react"
 import Link from "next/link"
 import { JOB_STATUS_CONFIG } from "@/lib/status-config"
+import { UserCache } from "@/lib/userCache"
+import { useState, useEffect } from "react"
 
 // Job type definition
 export type Job = {
@@ -121,22 +123,48 @@ export const columns: ColumnDef<Job>[] = [
     enableGlobalFilter: true,
     cell: ({ row }) => {
       const acceptedBy = row.getValue("accepted_by")
-      console.log('AcceptedBy cell value:', acceptedBy) // Debug log
       
       if (!acceptedBy) {
         return <span className="text-sm text-muted-foreground">-</span>
       }
+
+      const acceptedByStr = acceptedBy as string
       
-      const fullValue = acceptedBy as string
-      const truncatedValue = fullValue.length > 12 
-        ? fullValue.substring(0, 12) + "..." 
-        : fullValue
+      // Check if it's a UUID (user ID)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acceptedByStr)
       
-      return (
-        <span className="text-sm" title={fullValue}>
-          {truncatedValue}
-        </span>
-      )
+      if (isUUID) {
+        const email = UserCache.getUserEmail(acceptedByStr)
+        const name = UserCache.getUserName(acceptedByStr)
+        
+        if (email) {
+          // Prefer name if available, otherwise use email
+          const displayText = name || email
+          const truncated = displayText.length > 15 ? displayText.substring(0, 15) + "..." : displayText
+          
+          return (
+            <span className="text-sm" title={`${name || ''} (${email})`}>
+              {truncated}
+            </span>
+          )
+        } else {
+          // Unknown user - show truncated ID and log it
+          const truncated = acceptedByStr.substring(0, 8) + "..."
+          return (
+            <span className="text-sm text-orange-600" title={`Unknown user: ${acceptedByStr}`}>
+              {truncated} ❓
+            </span>
+          )
+        }
+      } else {
+        // It's already an email
+        const truncated = acceptedByStr.length > 15 ? acceptedByStr.substring(0, 15) + "..." : acceptedByStr
+        return (
+          <span className="text-sm" title={acceptedByStr}>
+            {truncated}
+          </span>
+        )
+      }
     },
   },
   {
