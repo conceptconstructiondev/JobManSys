@@ -83,6 +83,7 @@ export interface Job {
   accepted_at: string | null
   onsite_time: string | null
   completed_time: string | null
+  time_spent: string | null 
   invoiced: boolean
   created_at: string
   updated_at?: string

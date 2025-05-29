@@ -15,7 +15,6 @@ import { MoreHorizontal, ExternalLink, CheckCircle2, X } from "lucide-react"
 import Link from "next/link"
 import { JOB_STATUS_CONFIG } from "@/lib/status-config"
 import { UserCache } from "@/lib/userCache"
-import { useState, useEffect } from "react"
 
 // Job type definition
 export type Job = {
@@ -28,6 +27,7 @@ export type Job = {
   accepted_at?: string | null
   onsite_time: string | null
   completed_time: string | null
+  time_spent: string | null
   invoiced: boolean
   created_at: string
   updated_at?: string
@@ -91,7 +91,9 @@ export const columns: ColumnDef<Job>[] = [
     accessorKey: "title",
     header: "Title",
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("title")}</div>
+      <div className="max-w-[300px] truncate" title={row.getValue("title")}>
+        {row.getValue("title")}
+      </div>
     ),
   },
   {
@@ -165,6 +167,22 @@ export const columns: ColumnDef<Job>[] = [
           </span>
         )
       }
+    },
+  },
+  {
+    accessorKey: "time_spent",
+    header: "Time Spent",
+    cell: ({ row }) => {
+      const timeSpent = row.getValue("time_spent")
+      if (!timeSpent || typeof timeSpent !== 'string') {
+        return <span className="text-sm text-muted-foreground">-</span>
+      }
+      
+      return (
+        <span className="text-sm font-mono">
+          {timeSpent}
+        </span>
+      )
     },
   },
   {

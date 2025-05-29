@@ -32,11 +32,12 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Download, RefreshCw } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { JobsCache } from "@/lib/jobsCache"
 import { UserCache } from "@/lib/userCache"
+import { exportJobsToExcel } from "@/lib/exportUtils"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -51,11 +52,11 @@ export function JobsDataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-    // Show all columns by default
     description: true,
     accepted_by: true,
     onsite_time: false,
     completed_time: false,
+    time_spent: false,
   })
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState("")
@@ -80,7 +81,6 @@ export function JobsDataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     globalFilterFn: (row, columnId, value) => {
-      // Update field names to match Supabase schema (snake_case)
       const searchableFields = [
         'id', 'title', 'description', 'company', 'status', 'accepted_by'
       ]
@@ -114,146 +114,139 @@ export function JobsDataTable<TData, TValue>({
     setIsFromCache(JobsCache.isValid())
   }, [data])
 
-  // Add debug logging
-  useEffect(() => {
-    console.log('Table data sample:', data.slice(0, 2))
-    console.log('Global filter value:', globalFilter)
-  }, [data, globalFilter])
+  const handleExportToExcel = () => {
+    // Get filtered data from the table (respects search/filters)
+    const filteredRows = table.getFilteredRowModel().rows
+    const jobsData = filteredRows.map((row) => row.original as any)
+    
+    // Export all filtered jobs
+    exportJobsToExcel(jobsData)
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Last updated: {lastUpdate.toLocaleTimeString()}
-          {isFromCache && " (cached)"}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className={`h-2 w-2 rounded-full ${isFromCache ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
-          <span className="text-xs text-muted-foreground">
-            {isFromCache ? 'Cached' : 'Live'}
-          </span>
+    <div className="w-full">
+      <div className="flex items-center py-4 gap-4">
+        <Input
+          placeholder="Search jobs..."
+          value={globalFilter ?? ""}
+          onChange={(event) => setGlobalFilter(String(event.target.value))}
+          className="max-w-sm"
+        />
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              Columns <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {table
+              .getAllColumns()
+              .filter((column) => column.getCanHide())
+              .map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                )
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <div className="ml-auto">
+          <Button onClick={handleExportToExcel} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel ({table.getFilteredRowModel().rows.length} jobs)
+          </Button>
         </div>
       </div>
       
-      <div className="w-full">
-        <div className="flex items-center py-4">
-          <Input
-            placeholder="Search jobs..."
-            value={globalFilter ?? ""}
-            onChange={(event) => {
-              const value = String(event.target.value)
-              console.log('Global filter changed to:', value)
-              setGlobalFilter(value)
-            }}
-            className="max-w-sm"
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Columns <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
                   return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
                   )
                 })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    )
-                  })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getFilteredRowModel().rows?.length ? (
+              table.getFilteredRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleRowClick(row)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
                 </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getFilteredRowModel().rows?.length ? (
-                table.getFilteredRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleRowClick(row)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No results.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
+          {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <div className="flex-1 text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
+        <div className="flex items-center space-x-2">
+          <div className="text-sm text-muted-foreground">
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()}
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="text-sm text-muted-foreground">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
-            </div>
-            <div className="space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                Next
-              </Button>
-            </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </Button>
           </div>
         </div>
       </div>

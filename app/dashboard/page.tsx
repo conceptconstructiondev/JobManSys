@@ -28,6 +28,25 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
+       {/* Header Section */}
+       <div className="flex items-center justify-end">
+       
+       <div className="flex items-center gap-4">
+         <div className="flex items-center gap-2 text-sm text-muted-foreground">
+           <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+           {jobs.length} total jobs • Auto-refresh every 10min
+         </div>
+         <Button 
+           variant="outline" 
+           size="sm" 
+           onClick={refresh}
+           className="flex items-center gap-2"
+         >
+           <RefreshCw className="h-4 w-4" />
+           Refresh
+         </Button>
+       </div>
+     </div>
       <div className="space-y-4">
         {/* Full-width Add Job Button */}
         <Button asChild className="w-full h-12 text-lg">
@@ -37,24 +56,7 @@ export default function DashboardPage() {
           </Link>
         </Button>
 
-        {/* Header Section */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Job Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={refresh}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </Button>
-            <div className="text-sm text-muted-foreground">
-              {jobs.length} total jobs • Auto-refresh every 10min
-            </div>
-          </div>
-        </div>
+       
         
         {/* Jobs Table */}
         <JobsDataTable columns={columns} data={jobs} />

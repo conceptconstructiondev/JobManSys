@@ -160,6 +160,7 @@ export async function completeJob(
   completionData: {
     work_completed_image?: string
     work_completed_notes?: string
+    time_spent?: string
   }
 ) {
   try {
@@ -168,6 +169,7 @@ export async function completeJob(
       .update({
         status: 'completed',
         completed_time: new Date().toISOString(),
+        time_spent: completionData.time_spent,
         ...completionData
       })
       .eq('id', jobId)
