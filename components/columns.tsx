@@ -11,8 +11,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, ExternalLink, X, CheckCircle2 } from "lucide-react"
+import { MoreHorizontal, ExternalLink, CheckCircle2, X } from "lucide-react"
 import Link from "next/link"
+import { JOB_STATUS_CONFIG } from "@/lib/status-config"
+import { UserCache } from "@/lib/userCache"
 
 // Job type definition
 export type Job = {
@@ -21,41 +23,63 @@ export type Job = {
   description: string
   company: string
   status: "open" | "accepted" | "onsite" | "completed"
-  acceptedBy: string | null
-  onsiteTime: string | null
-  completedTime: string | null
+  accepted_by: string | null
+  accepted_at?: string | null
+  onsite_time: string | null
+  completed_time: string | null
+  time_spent: string | null
   invoiced: boolean
-  createdAt: string
-  workStartedImage?: string
-  workStartedNotes?: string
-  workCompletedImage?: string
-  workCompletedNotes?: string
+  created_at: string
+  updated_at?: string
+  work_started_image?: string
+  work_started_notes?: string
+  work_completed_image?: string
+  work_completed_notes?: string
 }
 
 export const columns: ColumnDef<Job>[] = [
   {
     accessorKey: "id",
     header: "Job ID",
-    cell: ({ row }) => (
-      <Link 
-        href={`/dashboard/jobs/${row.getValue("id")}`}
-        className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-      >
-        {row.getValue("id")}
-      </Link>
-    ),
+    cell: ({ row }) => {
+      const fullId = row.getValue("id") as string
+      // Show first 8 characters of the ID
+      const truncatedId = fullId.substring(0, 8)
+      return (
+        <div className="font-medium text-blue-600" title={fullId}>
+          {truncatedId}...
+      </div>
+      )
+    },
   },
   {
-    accessorKey: "createdAt",
+    accessorKey: "created_at",
     header: "Date Created",
     cell: ({ row }) => {
-      const date = new Date(row.getValue("createdAt"))
-      // Use a consistent format to avoid hydration mismatch
+      const dateValue = row.getValue("created_at")
+      
+      // Handle different date formats
+      let date: Date
+      if (typeof dateValue === 'string') {
+        date = new Date(dateValue)
+      } else if (dateValue instanceof Date) {
+        date = dateValue
+      } else {
+        // Fallback to current date if invalid
+        date = new Date()
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return <div className="text-sm text-red-500">Invalid Date</div>
+      }
+      
       const formattedDate = date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
       })
+      
       return (
         <div className="text-sm">
           {formattedDate}
@@ -67,7 +91,9 @@ export const columns: ColumnDef<Job>[] = [
     accessorKey: "title",
     header: "Title",
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("title")}</div>
+      <div className="max-w-[300px] truncate" title={row.getValue("title")}>
+        {row.getValue("title")}
+      </div>
     ),
   },
   {
@@ -88,41 +114,93 @@ export const columns: ColumnDef<Job>[] = [
     header: "Status",
     cell: ({ row }) => {
       const status = row.getValue("status") as string
-      
-      const statusConfig = {
-        open: { label: "Open", variant: "secondary" as const },
-        accepted: { label: "Accepted", variant: "default" as const },
-        onsite: { label: "Onsite", variant: "destructive" as const },
-        completed: { label: "Completed", variant: "outline" as const },
-      }
-      
-      const config = statusConfig[status as keyof typeof statusConfig]
+      const config = JOB_STATUS_CONFIG[status as keyof typeof JOB_STATUS_CONFIG]
       
       return <Badge variant={config.variant}>{config.label}</Badge>
     },
   },
   {
-    accessorKey: "acceptedBy",
+    accessorKey: "accepted_by",
     header: "Accepted By",
+    enableGlobalFilter: true,
     cell: ({ row }) => {
-      const acceptedBy = row.getValue("acceptedBy")
-      return acceptedBy ? (
-        <span className="text-sm">{acceptedBy as string}</span>
-      ) : (
-        <span className="text-sm text-muted-foreground">-</span>
+      const acceptedBy = row.getValue("accepted_by")
+      
+      if (!acceptedBy) {
+        return <span className="text-sm text-muted-foreground">-</span>
+      }
+
+      const acceptedByStr = acceptedBy as string
+      
+      // Check if it's a UUID (user ID)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acceptedByStr)
+      
+      if (isUUID) {
+        const email = UserCache.getUserEmail(acceptedByStr)
+        const name = UserCache.getUserName(acceptedByStr)
+        
+        if (email) {
+          // Prefer name if available, otherwise use email
+          const displayText = name || email
+          const truncated = displayText.length > 15 ? displayText.substring(0, 15) + "..." : displayText
+          
+          return (
+            <span className="text-sm" title={`${name || ''} (${email})`}>
+              {truncated}
+            </span>
+          )
+        } else {
+          // Unknown user - show truncated ID and log it
+          const truncated = acceptedByStr.substring(0, 8) + "..."
+          return (
+            <span className="text-sm text-orange-600" title={`Unknown user: ${acceptedByStr}`}>
+              {truncated} ❓
+            </span>
+          )
+        }
+      } else {
+        // It's already an email
+        const truncated = acceptedByStr.length > 15 ? acceptedByStr.substring(0, 15) + "..." : acceptedByStr
+        return (
+          <span className="text-sm" title={acceptedByStr}>
+            {truncated}
+          </span>
+        )
+      }
+    },
+  },
+  {
+    accessorKey: "time_spent",
+    header: "Time Spent",
+    cell: ({ row }) => {
+      const timeSpent = row.getValue("time_spent")
+      if (!timeSpent || typeof timeSpent !== 'string') {
+        return <span className="text-sm text-muted-foreground">-</span>
+      }
+      
+      return (
+        <span className="text-sm font-mono">
+          {timeSpent}
+        </span>
       )
     },
   },
   {
-    accessorKey: "onsiteTime",
+    accessorKey: "onsite_time",
     header: "Onsite Time",
     cell: ({ row }) => {
-      const onsiteTime = row.getValue("onsiteTime")
+      const onsiteTime = row.getValue("onsite_time")
       if (!onsiteTime) {
         return <span className="text-sm text-muted-foreground">-</span>
       }
       
       const date = new Date(onsiteTime as string)
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return <span className="text-sm text-red-500">Invalid Date</span>
+      }
+      
       const formattedDate = date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',
@@ -142,15 +220,21 @@ export const columns: ColumnDef<Job>[] = [
     },
   },
   {
-    accessorKey: "completedTime",
+    accessorKey: "completed_time",
     header: "Completed Time",
     cell: ({ row }) => {
-      const completedTime = row.getValue("completedTime")
+      const completedTime = row.getValue("completed_time")
       if (!completedTime) {
         return <span className="text-sm text-muted-foreground">-</span>
       }
       
       const date = new Date(completedTime as string)
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return <span className="text-sm text-red-500">Invalid Date</span>
+      }
+      
       const formattedDate = date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',
@@ -215,13 +299,13 @@ export const columns: ColumnDef<Job>[] = [
                 View details
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            {/* <DropdownMenuItem>
               Edit job
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            </DropdownMenuItem> */}
+            {/* <DropdownMenuSeparator />
             <DropdownMenuItem>
               {job.invoiced ? "Mark as not invoiced" : "Mark as invoiced"}
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
           </DropdownMenuContent>
         </DropdownMenu>
       )

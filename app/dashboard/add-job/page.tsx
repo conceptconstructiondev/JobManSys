@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { ArrowLeft, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { createJob } from "@/lib/jobs"
+import { JobsCache } from "@/lib/jobsCache"
 
 export default function AddJobPage() {
   const router = useRouter()
@@ -31,26 +33,25 @@ export default function AddJobPage() {
     setIsSubmitting(true)
 
     try {
-      // TODO: Replace with actual API call to create job
-      const newJob = {
-        id: `JOB${String(Date.now()).slice(-3)}`, // Generate temporary ID
+      const jobId = await createJob({
         title: formData.title,
         description: formData.description,
         company: formData.company,
-        status: "open" as const,
-        acceptedBy: null,
-        onsiteTime: null,
-        completedTime: null,
+        status: "open",
+        accepted_by: null,
+        accepted_at: null,
+        onsite_time: null,
+        completed_time: null,
         invoiced: false,
-        createdAt: new Date().toISOString().split('T')[0], // Today's date
-      }
+        time_spent: null,
+      })
 
-      console.log("New job created:", newJob)
+      console.log("New job created with ID:", jobId)
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Clear cache so dashboard will fetch fresh data
+      JobsCache.clear()
       
-      // Redirect back to dashboard
+      // Navigate back to dashboard
       router.push("/dashboard")
     } catch (error) {
       console.error("Error creating job:", error)
@@ -74,7 +75,7 @@ export default function AddJobPage() {
         <CardHeader className="space-y-2 p-4 md:p-6">
           <CardTitle className="text-lg md:text-xl">Job Details</CardTitle>
           <CardDescription className="text-sm">
-           
+            Fill in the details for the new job
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0">

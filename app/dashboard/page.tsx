@@ -1,83 +1,66 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+"use client"
+
+import { JobsDataTable } from "@/components/jobs-data-table"
+import { columns } from "@/components/columns"
+import { useOptimizedJobs } from "@/hooks/useOptimizedJobs"
+import { useAuth } from "@/contexts/AuthContext"
+import ProtectedRoute from "@/components/ProtectedRoute"
 import { Button } from "@/components/ui/button"
-import { PlusIcon, BriefcaseIcon,  Users, CheckCircle } from "lucide-react"
+import { RefreshCw, Plus } from "lucide-react"
 import Link from "next/link"
-import { JobsDataTable } from "../../components/jobs-data-table"
-import { columns } from "../../components/columns"
-import { jobsData } from "@/lib/jobs-data"
 
 export default function DashboardPage() {
-  // Calculate metrics for cards
-  const outstandingJobs = jobsData.filter(job => job.status === 'open').length
-  const onsiteJobs = jobsData.filter(job => job.status === 'onsite').length
-  const completedJobs = jobsData.filter(job => job.status === 'completed').length
+  const { jobs, loading, refresh } = useOptimizedJobs()
+  const { user } = useAuth()
+
+  console.log('Current user:', user?.email)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading jobs...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-      <Button asChild className="w-full ">
-          <Link href="/dashboard/add-job">
-            <PlusIcon className="mr-2 h-4 w-4" />
+    <ProtectedRoute>
+       {/* Header Section */}
+       <div className="flex items-center justify-end">
+       
+       <div className="flex items-center gap-4">
+         <div className="flex items-center gap-2 text-sm text-muted-foreground">
+           <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+           {jobs.length} total jobs • Auto-refresh every 10min
+         </div>
+         <Button 
+           variant="outline" 
+           size="sm" 
+           onClick={refresh}
+           className="flex items-center gap-2"
+         >
+           <RefreshCw className="h-4 w-4" />
+           Refresh
+         </Button>
+       </div>
+     </div>
+      <div className="space-y-4">
+        {/* Full-width Add Job Button */}
+        <Button asChild className="w-full h-12 text-lg">
+          <Link href="/dashboard/add-job" className="flex items-center justify-center gap-2">
+            <Plus className="h-5 w-5" />
             Add New Job
           </Link>
         </Button>
-      </div>
 
-
-      {/* Status Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Outstanding Jobs</CardTitle>
-            <BriefcaseIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{outstandingJobs}</div>
-            <p className="text-xs text-muted-foreground">
-              Open jobs awaiting acceptance
-            </p>
-          </CardContent>
-        </Card>
+       
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Onsite</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{onsiteJobs}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently in progress
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Jobs</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedJobs}</div>
-            <p className="text-xs text-muted-foreground">
-              Finished jobs
-            </p>
-          </CardContent>
-        </Card>
+        {/* Jobs Table */}
+        <JobsDataTable columns={columns} data={jobs} />
       </div>
-
-      {/* Jobs Data Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Jobs</CardTitle>
-          <CardDescription>
-            Manage and track all your field contractor jobs
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <JobsDataTable columns={columns} data={jobsData} />
-        </CardContent>
-      </Card>
-    </div>
+    </ProtectedRoute>
   )
 }
