@@ -90,7 +90,7 @@ export default function JobPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingInvoice, setUpdatingInvoice] = useState(false)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
   
   useEffect(() => {
     async function fetchJob() {
@@ -158,6 +158,7 @@ export default function JobPage() {
         day: 'numeric'
       })
     } catch (error) {
+      console.error('Invalid date:', error)
       return 'Invalid Date'
     }
   }
@@ -175,6 +176,7 @@ export default function JobPage() {
         minute: '2-digit'
       })
     } catch (error) {
+      console.error('Invalid date:', error)
       return 'Invalid Date'
     }
   }

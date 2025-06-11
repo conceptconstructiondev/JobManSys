@@ -32,12 +32,10 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronDown, Download, RefreshCw } from "lucide-react"
-import { useState, useEffect } from "react"
+import { ChevronDown, Download } from "lucide-react"
+import { useState,  } from "react"
 import { useRouter } from "next/navigation"
-import { JobsCache } from "@/lib/jobsCache"
-import { UserCache } from "@/lib/userCache"
-import { exportJobsToExcel } from "@/lib/exportUtils"
+import { exportJobsToExcel, ExportableJob } from "@/lib/exportUtils"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -64,8 +62,6 @@ export function JobsDataTable<TData, TValue>({
     pageIndex: 0,
     pageSize: 20,
   })
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
-  const [isFromCache, setIsFromCache] = useState(false)
 
   const table = useReactTable({
     data,
@@ -108,16 +104,10 @@ export function JobsDataTable<TData, TValue>({
     router.push(`/dashboard/jobs/${jobId}`)
   }
 
-  // Check if data is from cache
-  useEffect(() => {
-    setLastUpdate(new Date())
-    setIsFromCache(JobsCache.isValid())
-  }, [data])
-
   const handleExportToExcel = () => {
     // Get filtered data from the table (respects search/filters)
     const filteredRows = table.getFilteredRowModel().rows
-    const jobsData = filteredRows.map((row) => row.original as any)
+    const jobsData = filteredRows.map((row) => row.original as ExportableJob)
     
     // Export all filtered jobs
     exportJobsToExcel(jobsData)

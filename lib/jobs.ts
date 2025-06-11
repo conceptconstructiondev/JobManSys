@@ -1,5 +1,4 @@
 import { supabase, Job } from './supabase'
-import { useState, useEffect } from 'react'
 
 // Create a new job
 export async function createJob(jobData: Omit<Job, 'id' | 'created_at' | 'updated_at'>) {

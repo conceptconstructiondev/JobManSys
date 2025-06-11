@@ -43,6 +43,7 @@ export default function AddJobPage() {
         onsite_time: null,
         completed_time: null,
         invoiced: false,
+        time_spent: null,
       })
 
       console.log("New job created with ID:", jobId)
