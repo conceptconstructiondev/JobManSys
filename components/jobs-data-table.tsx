@@ -33,7 +33,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronDown, Download } from "lucide-react"
-import { useState,  } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { exportJobsToExcel, ExportableJob } from "@/lib/exportUtils"
 
@@ -62,6 +62,44 @@ export function JobsDataTable<TData, TValue>({
     pageIndex: 0,
     pageSize: 20,
   })
+
+  // Set mobile column visibility
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobile = window.innerWidth < 768
+      
+      if (isMobile) {
+        setColumnVisibility({
+          // Show only these on mobile
+          title: true,
+          company: true,
+          status: true,
+          accepted_by: true,
+          // Hide all others
+          id: false,
+          created_at: false,
+          description: false,
+          onsite_time: false,
+          completed_time: false,
+          time_spent: false,
+          actions: false,
+        })
+      } else {
+        // Desktop visibility
+        setColumnVisibility({
+          description: true,
+          accepted_by: true,
+          onsite_time: false,
+          completed_time: false,
+          time_spent: false,
+        })
+      }
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const table = useReactTable({
     data,
