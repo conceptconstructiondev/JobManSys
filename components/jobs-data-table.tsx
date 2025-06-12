@@ -83,6 +83,7 @@ export function JobsDataTable<TData, TValue>({
           completed_time: false,
           time_spent: false,
           actions: false,
+          
         })
       } else {
         // Desktop visibility
@@ -188,7 +189,7 @@ export function JobsDataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="ml-auto">
+        <div className="ml-auto hidden md:block">
           <Button onClick={handleExportToExcel} variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export Excel ({table.getFilteredRowModel().rows.length} jobs)

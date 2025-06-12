@@ -2,17 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, ExternalLink, CheckCircle2, X } from "lucide-react"
-import Link from "next/link"
+import { CheckCircle2, X } from "lucide-react"
 import { JOB_STATUS_CONFIG } from "@/lib/status-config"
 import { UserCache } from "@/lib/userCache"
 
@@ -46,9 +36,9 @@ export const columns: ColumnDef<Job>[] = [
       // Show first 8 characters of the ID
       const truncatedId = fullId.substring(0, 8)
       return (
-        <div className="font-medium text-blue-600" title={fullId}>
+        <div className="font-medium text-status-open" title={fullId}>
           {truncatedId}...
-      </div>
+        </div>
       )
     },
   },
@@ -153,7 +143,7 @@ export const columns: ColumnDef<Job>[] = [
           // Unknown user - show truncated ID and log it
           const truncated = acceptedByStr.substring(0, 8) + "..."
           return (
-            <span className="text-sm text-orange-600" title={`Unknown user: ${acceptedByStr}`}>
+            <span className="text-sm text-status-accepted" title={`Unknown user: ${acceptedByStr}`}>
               {truncated} ❓
             </span>
           )
@@ -270,44 +260,6 @@ export const columns: ColumnDef<Job>[] = [
             </span>
           )}
         </div>
-      )
-    },
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => {
-      const job = row.original
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(job.id)}>
-              Copy job ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={`/dashboard/jobs/${job.id}`}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View details
-              </Link>
-            </DropdownMenuItem>
-            {/* <DropdownMenuItem>
-              Edit job
-            </DropdownMenuItem> */}
-            {/* <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              {job.invoiced ? "Mark as not invoiced" : "Mark as invoiced"}
-            </DropdownMenuItem> */}
-          </DropdownMenuContent>
-        </DropdownMenu>
       )
     },
   },

@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { LogOut } from 'lucide-react'
+import Image from 'next/image'
 
 export default function DashboardLayout({
   children,
@@ -25,7 +26,13 @@ export default function DashboardLayout({
       <main className="flex-1 flex flex-col min-h-screen">
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold">Concept Construction</h1>
+            <Image
+              src="/adaptive-icon.png"
+              alt="Concept Construction"
+              width={64}
+              height={64}
+              className="rounded"
+            />
           </div>
           <div className="flex items-center gap-3">
             {user?.email && (

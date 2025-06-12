@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Image from "next/image"
 
 export function LoginForm({
   className,
@@ -44,11 +45,17 @@ export function LoginForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
-        <CardHeader>
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/adaptive-icon.png"
+              alt="Concept Construction Logo"
+              width={64}
+              height={64}
+              className="rounded-lg"
+            />
+          </div>
           <CardTitle>Login to your account</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>

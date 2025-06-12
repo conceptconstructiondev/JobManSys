@@ -8,6 +8,13 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Add your custom job status colors */
+  --color-status-open: var(--status-open);
+  --color-status-accepted: var(--status-accepted);
+  --color-status-onsite: var(--status-onsite);
+  --color-status-completed: var(--status-completed);
+  
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -45,6 +52,13 @@
 
 :root {
   --radius: 0.625rem;
+  
+  /* Add your job status colors */
+  --status-open: #2196F3;
+  --status-accepted: #FF9800;
+  --status-onsite: #9C27B0;
+  --status-completed: #4CAF50;
+  
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -79,6 +93,12 @@
 }
 
 .dark {
+  /* Keep the same colors for dark mode - they work well */
+  --status-open: #2196F3;
+  --status-accepted: #FF9800;
+  --status-onsite: #9C27B0;
+  --status-completed: #4CAF50;
+  
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

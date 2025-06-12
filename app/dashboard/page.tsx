@@ -33,7 +33,7 @@ export default function DashboardPage() {
        
        <div className="flex items-center gap-4">
          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-           <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+           <div className="h-2 w-2 rounded-full animate-pulse bg-status-completed"></div>
            {jobs.length} total jobs • Auto-refresh every 10min
          </div>
          <Button 

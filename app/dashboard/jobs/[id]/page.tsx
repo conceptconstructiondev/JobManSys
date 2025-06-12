@@ -230,7 +230,7 @@ export default function JobPage() {
   return (
     <>
       <style>{printStyles}</style>
-      <div className="container mx-auto p-6 max-w-6xl printable">
+      <div className="container mx-auto max-w-6xl printable">
         {/* Header - hide print button when printing */}
         <div className="mb-6 no-print">
           <div className="flex justify-between items-center">
@@ -240,7 +240,7 @@ export default function JobPage() {
                 Back to Jobs Dashboard
               </Link>
             </Button>
-            <Button onClick={handlePrint} variant="outline">
+            <Button onClick={handlePrint} variant="outline" className="hidden md:flex">
               <Printer className="h-4 w-4 mr-2" />
               Print/Export PDF
             </Button>
@@ -285,7 +285,7 @@ export default function JobPage() {
                   {/* Job Accepted - Show if accepted */}
                   {job.accepted_by && (
                     <div className="flex items-start gap-4">
-                      <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 bg-status-accepted">
                         <User className="h-4 w-4 text-white" />
                       </div>
                       <div>
@@ -303,7 +303,7 @@ export default function JobPage() {
                   {/* Work Started - Show if onsite_time OR work_started_image OR work_started_notes */}
                   {(job.onsite_time || job.work_started_image || job.work_started_notes) && (
                     <div className="flex items-start gap-4">
-                      <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 bg-status-onsite">
                         {job.onsite_time ? (
                           <Clock className="h-4 w-4 text-white" />
                         ) : (
@@ -350,7 +350,7 @@ export default function JobPage() {
                   {/* Work Completed - Show if completed_time OR work_completed_image OR work_completed_notes */}
                   {(job.completed_time || job.work_completed_image || job.work_completed_notes) && (
                     <div className="flex items-start gap-4">
-                      <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 bg-status-completed">
                         <CheckCircle2 className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1">
@@ -381,7 +381,7 @@ export default function JobPage() {
                           <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800">
                             <div className="flex items-center gap-2 mb-2">
                               <CheckCircle2 className="h-4 w-4 text-green-600" />
-                              <span className="text-sm font-medium text-green-800 dark:text-green-200">Completion Report</span>
+                              <span className="text-sm font-medium text-green-800 dark:text-green-300">Completion Report</span>
                             </div>
                             <p className="text-sm text-green-700 dark:text-green-300">{job.work_completed_notes}</p>
                           </div>
