@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { LogOut, User } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +21,13 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { signOut, user } = useAuth()
+  const router = useRouter()
 
   const handleLogout = async () => {
     try {
       await signOut()
+      // Explicitly redirect to login page after logout
+      router.push('/login')
     } catch (error) {
       console.error('Failed to log out:', error)
     }
