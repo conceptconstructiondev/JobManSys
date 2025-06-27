@@ -3,8 +3,16 @@
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { LogOut } from 'lucide-react'
+import { LogOut, User } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function DashboardLayout({
   children,
@@ -25,7 +33,7 @@ export default function DashboardLayout({
     <ProtectedRoute>
       <main className="flex-1 flex flex-col min-h-screen">
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-4">
-          <div className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <Image
               src="/adaptive-icon.png"
               alt="Concept Construction"
@@ -33,17 +41,47 @@ export default function DashboardLayout({
               height={64}
               className="rounded"
             />
-          </div>
+          </Link>
           <div className="flex items-center gap-3">
-            {user?.email && (
-              <span className="text-sm text-muted-foreground hidden sm:inline">
-                {user.email}
-              </span>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center">
+                    <span className="text-xs text-primary-foreground font-medium">
+                      {user?.email?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
+                    {user?.email}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="flex items-center gap-2 p-2">
+                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                    <span className="text-xs text-primary-foreground font-medium">
+                      {user?.email?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium">{user?.user_metadata?.full_name || 'User'}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/profile" className="flex items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
         <div className="flex-1 flex flex-col gap-4 p-4">
