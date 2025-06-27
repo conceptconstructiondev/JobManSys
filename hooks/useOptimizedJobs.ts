@@ -3,6 +3,32 @@ import { Job } from '@/lib/jobs-data'
 import { getAllJobs } from '@/lib/jobs'
 import { JobsCache } from '@/lib/jobsCache'
 
+// Status priority order (lower number = higher priority/comes first)
+const STATUS_PRIORITY = {
+  'open': 1,
+  'accepted': 2,
+  'onsite': 3,
+  'completed': 4
+} as const
+
+// Function to sort jobs by status priority, then by created date
+const sortJobsByPriority = (jobs: Job[]): Job[] => {
+  return [...jobs].sort((a, b) => {
+    // First sort by status priority
+    const aPriority = STATUS_PRIORITY[a.status] || 999
+    const bPriority = STATUS_PRIORITY[b.status] || 999
+    
+    if (aPriority !== bPriority) {
+      return aPriority - bPriority
+    }
+    
+    // If same status, sort by created date (newest first within each status)
+    const aDate = new Date(a.created_at).getTime()
+    const bDate = new Date(b.created_at).getTime()
+    return bDate - aDate
+  })
+}
+
 export function useOptimizedJobs() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
@@ -22,12 +48,14 @@ export function useOptimizedJobs() {
     try {
       console.log('Fetching jobs from Firestore...')
       const freshJobs = await getAllJobs()
-      setJobs(freshJobs)
+      // Sort jobs by status priority
+      const sortedJobs = sortJobsByPriority(freshJobs)
+      setJobs(sortedJobs)
       setLoading(false)
       setLastFetch(now)
       
-      // Cache the results
-      JobsCache.set(freshJobs)
+      // Cache the results (sorted)
+      JobsCache.set(sortedJobs)
     } catch (error) {
       console.error('Error fetching jobs:', error)
       setLoading(false)
@@ -38,7 +66,9 @@ export function useOptimizedJobs() {
     // Try cache first
     const cachedJobs = JobsCache.get()
     if (cachedJobs) {
-      setJobs(cachedJobs)
+      // Re-sort cached jobs in case sorting logic changed
+      const sortedJobs = sortJobsByPriority(cachedJobs)
+      setJobs(sortedJobs)
       setLoading(false)
       console.log('Loaded from cache, no Firestore read')
       return

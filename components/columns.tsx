@@ -27,6 +27,14 @@ export type Job = {
   work_completed_notes?: string
 }
 
+// Status priority for custom sorting (lower number = higher priority)
+const STATUS_PRIORITY = {
+  'open': 1,
+  'accepted': 2,
+  'onsite': 3,
+  'completed': 4
+} as const
+
 export const columns: ColumnDef<Job>[] = [
   {
     accessorKey: "id",
@@ -107,6 +115,16 @@ export const columns: ColumnDef<Job>[] = [
       const config = JOB_STATUS_CONFIG[status as keyof typeof JOB_STATUS_CONFIG]
       
       return <Badge variant={config.variant}>{config.label}</Badge>
+    },
+    // Custom sorting function for status
+    sortingFn: (rowA, rowB, columnId) => {
+      const statusA = rowA.getValue(columnId) as keyof typeof STATUS_PRIORITY
+      const statusB = rowB.getValue(columnId) as keyof typeof STATUS_PRIORITY
+      
+      const priorityA = STATUS_PRIORITY[statusA] || 999
+      const priorityB = STATUS_PRIORITY[statusB] || 999
+      
+      return priorityA - priorityB
     },
   },
   {
@@ -198,14 +216,14 @@ export const columns: ColumnDef<Job>[] = [
       })
       const formattedTime = date.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false
+        minute: '2-digit'
       })
       
       return (
-        <span className="text-sm">
-          {formattedDate} {formattedTime}
-        </span>
+        <div className="text-sm">
+          <div>{formattedDate}</div>
+          <div className="text-xs text-muted-foreground">{formattedTime}</div>
+        </div>
       )
     },
   },
@@ -232,14 +250,14 @@ export const columns: ColumnDef<Job>[] = [
       })
       const formattedTime = date.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false
+        minute: '2-digit'
       })
       
       return (
-        <span className="text-sm">
-          {formattedDate} {formattedTime}
-        </span>
+        <div className="text-sm">
+          <div>{formattedDate}</div>
+          <div className="text-xs text-muted-foreground">{formattedTime}</div>
+        </div>
       )
     },
   },
@@ -248,19 +266,11 @@ export const columns: ColumnDef<Job>[] = [
     header: "Invoiced",
     cell: ({ row }) => {
       const invoiced = row.getValue("invoiced")
-      return (
-        <div className="flex items-center">
-          {invoiced ? (
-            <span title="Invoiced">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            </span>
-          ) : (
-            <span title="Not invoiced">
-              <X className="h-4 w-4 text-red-500" />
-            </span>
-          )}
-        </div>
+      return invoiced ? (
+        <CheckCircle2 className="h-4 w-4 text-green-600" />
+      ) : (
+        <X className="h-4 w-4 text-gray-400" />
       )
     },
-  },
+  }
 ] 
