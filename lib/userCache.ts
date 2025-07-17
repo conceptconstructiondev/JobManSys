@@ -12,17 +12,41 @@ class UserCacheManager {
 
   // Pre-populated user mappings - add your known users here!
   private staticMappings: UserMapping = {
-    '8e08c810-8a76-4ca9-a484-059d994cad08': {
-      email: 'john@example.com',
-      name: 'John Smith',
+    'ff10b084-2c7f-4c71-a8e7-3639fa3b8ff7': {
+      email: 'es2037528@gmail.com',
+      name: 'Edmund',
+      updated_at: new Date().toISOString()
+    },    
+    'b4cc3f24-71fd-4ff2-89a4-c60c496351f3': {
+      email: 'jolfivilanova04@gmail.com', 
+      name: 'David',
       updated_at: new Date().toISOString()
     },
-    // Add more users as you discover them:
-    // 'another-uuid-here': {
-    //   email: 'jane@contractor.com', 
-    //   name: 'Jane Wilson',
-    //   updated_at: new Date().toISOString()
-    // }
+    '5a78e5b5-676b-4523-aebb-d6e2c0b79ac4': {
+      email: 'chris@conceptconstructiontl.com', 
+      name: 'Chris',
+      updated_at: new Date().toISOString()
+    },
+    '4bbde6e9-02ed-46f1-8e08-da1badc58894': {
+      email: 'jilfilanova04@gmail.com', 
+      name: 'David',
+      updated_at: new Date().toISOString()
+    },    
+    '04ba16d9-4dce-4786-96df-f5c19912f793':{
+      email: 'alansyaif30@gmail.com', 
+      name: 'Ali',
+      updated_at: new Date().toISOString()
+    },
+    '2db99be7-6acc-4836-820e-9e2dcd466886':{
+      email: 'litobruan@gmail.com', 
+      name: 'Zaldy',
+      updated_at: new Date().toISOString()
+    },
+    'c0720fbe-b408-4ee8-ab67-0fb297916b4c':{
+      email: 'martinsj866@yahoo.com', 
+      name: 'Jose',
+      updated_at: new Date().toISOString()
+    },
   }
 
   constructor() {
