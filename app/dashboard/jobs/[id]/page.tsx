@@ -441,12 +441,6 @@ export default function JobPage() {
                     <p className="font-medium">Assigned Contractor</p>
                     <div className="text-sm text-muted-foreground">
                       <p className="font-medium text-foreground">{getDisplayName(job.accepted_by)}</p>
-                      {getDisplayEmail(job.accepted_by) && getDisplayEmail(job.accepted_by) !== getDisplayName(job.accepted_by) && (
-                        <p>{getDisplayEmail(job.accepted_by)}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        ID: {job.accepted_by.substring(0, 8)}...
-                      </p>
                     </div>
                   </div>
                 )}
